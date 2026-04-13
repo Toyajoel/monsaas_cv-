@@ -7,19 +7,19 @@ const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000';
 function App() {
   const [activeTab, setActiveTab] = useState('form');
   const [data, setData] = useState({
-    name: 'Toya Tankwa Joel Sorel',
-    email: 'toyatankwajoelsorel@gmail.com',
-    phone: '+237 674826516',
-    address: 'Douala, Cameroun',
-    title: 'Développeur Web Full-Stack',
-    bio: 'Développeur Web Full-Stack spécialisé dans la création d\'applications web modernes, performantes et évolutives...',
-    skills: '• PHP, JavaScript, HTML5, CSS3\n• React js, Node js\n• MySQL, Git',
-    langue: '• Français : Langue maternelle\n• Anglais : Technique',
-    qualite: '• Disponibilité : immédiate\n• Réactivité et respect strict des délais',
-    projet: 'Application de messagerie Instantanée\n• Développement de messagerie en temps réel\n\nApplication de gestion des élèves\n• Plateforme d\'administration scolaire',
-    experience: 'Développeur Web Full-Stack - Genies Groupe (Depuis septembre 2023)\n• Création d\'interfaces web modernes\n• Intégration d\'API Node.js',
-    education: 'Licence en Génie logiciel - En cours\n• BTS Génie Logiciel 2024-2025',
-    methodes: '• Travail collaboratif en équipe\n• Utilisation d\'outils de gestion de projet',
+    name: 'VOTRE NOM COMPLET',
+    email: 'votre.email@exemple.com',
+    phone: '+237 6XX XX XX XX',
+    address: 'Ville, Pays',
+    title: 'TITRE DU POSTE (Ex: Commerçant, Ingénieur)',
+    bio: 'Décrivez ici votre parcours en quelques lignes pour attirer l\'attention des recruteurs...',
+    skills: '• Compétence 1\n• Compétence 2\n• Compétence 3',
+    langue: '• Français : Langue maternelle\n• Anglais : Courant',
+    qualite: '• Rigueur et ponctualité\n• Esprit d\'équipe',
+    projet: 'Nom du Projet\n• Description de votre réalisation\n\nAutre Réalisation\n• Détails de ce que vous avez accompli',
+    experience: 'Poste Occupé - Nom de l\'Entreprise (Dates)\n• Responsabilités et résultats obtenus',
+    education: 'Diplôme Obtenu - Nom de l\'École (Année)\n• Mention ou spécialité',
+    methodes: '• Méthode 1\n• Méthode 2',
     photo: null
   });
   const [template, setTemplate] = useState('premium');
