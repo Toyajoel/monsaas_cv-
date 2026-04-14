@@ -76,8 +76,17 @@ function App() {
           extractedText += content.items.map(item => item.str).join(' ') + '\n';
         }
       } else if (file.type.startsWith('image/')) {
-        // Optionnel : on peut configurer un tracker de progression ici
-        const result = await window.Tesseract.recognize(file, 'fra+eng');
+        setJobDescription("Téléchargement du moteur de lecture d'image en cours... patientez.");
+        const result = await window.Tesseract.recognize(file, 'fra', {
+          logger: m => {
+            console.log(m);
+            if (m.status === "recognizing text") {
+              setJobDescription(`Analyse de l'image en cours... ${Math.round(m.progress * 100)}%`);
+            } else if (m.status === "loading tesseract core" || m.status.includes("loading")) {
+              setJobDescription(`Chargement du module OCR... patientez.`);
+            }
+          }
+        });
         extractedText = result.data.text;
       } else {
         throw new Error("Format non supporté. Veuillez utiliser un PDF ou une Image.");
