@@ -434,6 +434,7 @@ function App() {
                   </p>
                 </div>
               </div>
+            )}
             {activeTab === 'ia' && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <div className="bg-gradient-to-br from-purple-600 to-indigo-700 p-5 rounded-xl shadow-lg relative overflow-hidden">
