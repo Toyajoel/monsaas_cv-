@@ -193,7 +193,22 @@ function App() {
               setShowPaywall(false);
               setPaymentStatus('COMPLETED');
               setIsPaying(false);
-              alert("Paiement réussi ! Votre compte a été crédité.");
+              alert("Paiement réussi ! Votre téléchargement va démarrer automatiquement.");
+              
+              // Téléchargement automatique après paiement
+              setTimeout(() => {
+                window.scrollTo(0, 0);
+                const element = document.getElementById('cv-preview');
+                const opt = {
+                  margin: 0,
+                  filename: 'mon-cv-premium.pdf',
+                  image: { type: 'jpeg', quality: 1 },
+                  html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+                  jsPDF: { unit: 'px', format: [794, 1123], orientation: 'portrait' }
+                };
+                html2pdf().set(opt).from(element).save();
+                setCredits(prev => prev - 1);
+              }, 1000);
             } else if (currentStatus === 'failed' || currentStatus === 'rejected' || currentStatus === 'cancelled') {
               clearInterval(checkInterval);
               setPaymentStatus('FAILED');
