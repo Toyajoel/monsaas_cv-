@@ -4,10 +4,12 @@ import multer from 'multer';
 import Groq from 'groq-sdk';
 import axios from 'axios';
 import pool from './db.js';
-import dotenv from 'dotenv';
-dotenv.config();
 
-console.log("Server starting...");
+// dotenv is handled by Vercel automatically in production
+if (process.env.NODE_ENV !== 'production') {
+  const { default: dotenv } = await import('dotenv');
+  dotenv.config();
+}
 
 const app = express();
 app.use(cors());
