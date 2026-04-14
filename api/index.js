@@ -73,10 +73,15 @@ app.post('/api/pay/initiate', async (req, res) => {
     const { phoneNumber } = req.body;
     if (!phoneNumber) return res.status(400).json({ error: 'Numéro requis.' });
 
+    let formattedPhone = phoneNumber.trim().replace(/\s/g, '');
+    if (!formattedPhone.startsWith('+')) {
+      formattedPhone = formattedPhone.length === 9 ? `+237${formattedPhone}` : `+${formattedPhone}`;
+    }
+
     const payload = {
       amount: 650,
-      description: 'Crédits CV AI',
-      customer: { phone: phoneNumber }
+      description: 'Achat de 5 crédits CV AI (Cameroun)',
+      customer: { phone: formattedPhone }
     };
 
     const response = await axios.post(process.env.GENIUSPAY_API_URL, payload, {
