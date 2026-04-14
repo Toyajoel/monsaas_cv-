@@ -2,7 +2,23 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/api/(.*)",
+      "source": "/api/pay/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/api/credits/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/api/extract-pdf",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/api/generate-cv",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/api/health",
       "destination": "/api/index.js"
     },
     {
