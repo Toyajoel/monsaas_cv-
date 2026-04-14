@@ -1,10 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const pdfParse = require('pdf-parse');
-import Tesseract from 'tesseract.js';
 import Groq from 'groq-sdk';
 import axios from 'axios';
 import pool from './db.js';
@@ -36,10 +32,14 @@ app.post('/api/extract-pdf', upload.single('file'), async (req, res) => {
     let extractedText = '';
 
     if (mimeType === 'application/pdf') {
+      const { createRequire } from 'module';
+      const require = createRequire(import.meta.url);
+      const pdfParse = require('pdf-parse');
       const data = await pdfParse(fileBuffer);
       extractedText = data.text;
     } else if (mimeType.startsWith('image/')) {
-      const { data: { text } } = await Tesseract.recognize(fileBuffer, 'fra+eng');
+      const Tesseract = await import('tesseract.js');
+      const { data: { text } } = await Tesseract.default.recognize(fileBuffer, 'fra+eng');
       extractedText = text;
     } else {
       return res.status(400).json({ error: 'Format de fichier non supporté (utilisez PDF ou Image).' });
