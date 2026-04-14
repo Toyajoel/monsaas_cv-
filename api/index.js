@@ -80,6 +80,7 @@ app.post('/api/pay/initiate', async (req, res) => {
 
     const payload = {
       amount: 650,
+      currency: 'XAF',
       description: 'Achat de 5 crédits CV AI (Cameroun)',
       customer: { phone: formattedPhone }
     };
