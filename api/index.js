@@ -3,11 +3,6 @@ import cors from 'cors';
 import multer from 'multer';
 import axios from 'axios';
 import pool from './db.js';
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
-const pdfParse = require('pdf-parse');
-
 const app = express();
 app.use(cors());
 app.use(express.json());
