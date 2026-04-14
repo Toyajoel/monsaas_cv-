@@ -133,7 +133,20 @@ function App() {
       }
 
       const result = await response.json();
-      setData((prev) => ({ ...prev, ...result }));
+
+      // Sécurité : on ne garde que les champs texte non vides retournés par l'IA
+      // pour ne jamais écraser photo ou d'autres champs valides avec null/vide
+      const safeFields = Object.fromEntries(
+        Object.entries(result).filter(([key, val]) => 
+          val !== null && val !== undefined && val !== '' && key !== 'photo'
+        )
+      );
+
+      if (Object.keys(safeFields).length === 0) {
+        throw new Error("L'IA n'a retourné aucune donnée valide. Réessayez.");
+      }
+
+      setData((prev) => ({ ...prev, ...safeFields }));
       setActiveTab('form');
     } catch (error) {
       console.error("Erreur IA :", error);

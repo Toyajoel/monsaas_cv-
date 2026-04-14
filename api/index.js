@@ -82,10 +82,27 @@ app.post('/api/extract-pdf', upload.single('file'), async (req, res) => {
 app.post('/api/generate-cv', async (req, res) => {
   try {
     const { currentData, jobDescription } = req.body;
+    if (!currentData || !jobDescription) {
+      return res.status(400).json({ error: 'Données CV ou description de poste manquantes.' });
+    }
+
     const { default: Groq } = await import('groq-sdk');
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-    const prompt = `Optimise ce CV JSON pour cette offre : ${jobDescription}. CV: ${JSON.stringify(currentData)}`;
+    const prompt = `Tu es un expert en rédaction de CV. Optimise ce CV JSON pour correspondre exactement à cette offre d'emploi.
+    
+OFFRE D'EMPLOI:
+${jobDescription}
+
+CV ACTUEL (JSON):
+${JSON.stringify(currentData)}
+
+INSTRUCTIONS STRICTES:
+- Retourne UNIQUEMENT un objet JSON valide avec exactement les mêmes clés que le CV actuel.
+- Ne modifie PAS les champs: name, email, phone, address, photo.
+- Réécris UNIQUEMENT: bio, skills, experience, education, projet, qualite, methodes, langue.
+- Ne mens pas, adapte seulement le style et la priorité des informations existantes.
+- Le JSON doit être complet et parseable.`;
     
     const completion = await groq.chat.completions.create({
       messages: [{ role: 'user', content: prompt }],
@@ -93,9 +110,19 @@ app.post('/api/generate-cv', async (req, res) => {
       response_format: { type: 'json_object' }
     });
 
-    res.json(JSON.parse(completion.choices[0].message.content));
+    const rawContent = completion.choices[0].message.content;
+    let parsed;
+    try {
+      parsed = JSON.parse(rawContent);
+    } catch (parseErr) {
+      console.error('JSON parse error from AI:', rawContent);
+      return res.status(500).json({ error: "L'IA a renvoyé une réponse invalide. Réessayez." });
+    }
+
+    res.json(parsed);
   } catch (error) {
-    res.status(500).json({ error: 'Erreur IA.' });
+    console.error('Erreur generate-cv:', error.message);
+    res.status(500).json({ error: `Erreur IA: ${error.message}` });
   }
 });
 
