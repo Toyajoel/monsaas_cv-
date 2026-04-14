@@ -58,18 +58,28 @@ function App() {
     formData.append('file', file);
     
     try {
+      console.log("Envoi du fichier vers :", `${API_URL}/api/extract-pdf`);
       const response = await fetch(`${API_URL}/api/extract-pdf`, {
         method: 'POST',
         body: formData,
       });
+
+      const contentType = response.headers.get("content-type");
+      if (!response.ok || !contentType || !contentType.includes("application/json")) {
+        const errorText = await response.text();
+        console.error("Réponse serveur invalide :", errorText);
+        throw new Error(`Le serveur a répondu avec une erreur (Code ${response.status})`);
+      }
+
       const result = await response.json();
-      if (response.ok) {
+      if (result.text) {
         setJobDescription(result.text);
       } else {
-        alert("Erreur lors de l'extraction du PDF : " + result.error);
+        throw new Error(result.error || "Aucun texte n'a pu être extrait.");
       }
     } catch (error) {
-      alert("Erreur de connexion au serveur IA de l'étape 1.");
+      console.error("Erreur complète :", error);
+      alert("Erreur : " + error.message);
     } finally {
       setIsGeneratingJob(false);
     }
@@ -87,16 +97,18 @@ function App() {
           phoneNumber: mtnNumber || 'FREE_USER'
         })
       });
-      const result = await response.json();
-      
-      if (response.ok) {
-        setData((prev) => ({ ...prev, ...result }));
-        setActiveTab('form'); // Switch back to form to see the result
-      } else {
-        alert("Erreur IA : " + result.error);
+
+      const contentType = response.headers.get("content-type");
+      if (!response.ok || !contentType || !contentType.includes("application/json")) {
+        throw new Error(`Erreur IA (Code ${response.status})`);
       }
+
+      const result = await response.json();
+      setData((prev) => ({ ...prev, ...result }));
+      setActiveTab('form');
     } catch (error) {
-      alert("Erreur de connexion au serveur IA.");
+      console.error("Erreur IA :", error);
+      alert("Erreur : " + error.message);
     } finally {
       setIsGeneratingJob(false);
     }
