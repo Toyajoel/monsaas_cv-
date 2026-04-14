@@ -76,11 +76,6 @@ function App() {
   };
 
   const generateJobTailoredCV = async () => {
-    if (credits <= 0) {
-      setShowPaywall(true);
-      return;
-    }
-
     setIsGeneratingJob(true);
     try {
       const response = await fetch(`${API_URL}/api/generate-cv`, {
@@ -89,14 +84,13 @@ function App() {
         body: JSON.stringify({ 
           currentData: data, 
           jobDescription: jobDescription,
-          phoneNumber: mtnNumber
+          phoneNumber: mtnNumber || 'FREE_USER'
         })
       });
       const result = await response.json();
       
       if (response.ok) {
         setData((prev) => ({ ...prev, ...result }));
-        setCredits(prev => prev - 1); // Décompter 1 crédit après succès
         setActiveTab('form'); // Switch back to form to see the result
       } else {
         alert("Erreur IA : " + result.error);
@@ -252,7 +246,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-6">
-      <h1 className="text-3xl font-bold mb-4 text-gray-800">Générateur de CV Premium</h1>
+      <h1 className="text-4xl font-black mb-6 text-gray-900 tracking-tighter">mon<span className="text-blue-600">cv</span></h1>
 
       <div className="bg-white rounded-none lg:rounded-xl shadow-xl w-full max-w-7xl flex flex-col lg:flex-row overflow-hidden lg:min-h-[850px]">
         {/* Left Panel: Controls */}
@@ -312,7 +306,7 @@ function App() {
                       className="w-full bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-bold py-3 px-4 rounded-lg shadow-md transition duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isGeneratingJob ? <Loader2 className="animate-spin" /> : <Bot />}
-                      {isGeneratingJob ? 'Analyse et Génération en cours...' : `Adapter mon CV à cette offre (${credits} essai${credits > 1 ? 's' : ''} restant${credits > 1 ? 's' : ''})`}
+                      {isGeneratingJob ? 'Analyse et Génération en cours...' : `Adapter mon CV gratuitement`}
                     </button>
                   </div>
                   

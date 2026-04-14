@@ -63,15 +63,8 @@ app.post('/api/generate-cv', async (req, res) => {
       return res.status(400).json({ error: 'L\'offre d\'emploi (jobDescription) est requise.' });
     }
 
-    if (!phoneNumber) {
-      return res.status(400).json({ error: 'Le numéro de téléphone est requis pour vérifier vos crédits.' });
-    }
-
-    // Vérifier les crédits dans TiDB
-    const [users] = await pool.query('SELECT credits FROM users WHERE phoneNumber = ?', [phoneNumber]);
-    if (!users.length || users[0].credits <= 0) {
-      return res.status(403).json({ error: 'Crédits insuffisants. Veuillez passer au Premium.' });
-    }
+    // Le numéro n'est plus requis pour l'IA car c'est gratuit
+    // On ne vérifie plus les crédits ici
 
     const prompt = `
 Tu es un expert mondial en recrutement et optimisation de CV (ATS expert).
@@ -100,10 +93,7 @@ Tu DOIS retourner un objet JSON avec EXACTEMENT ces clés (et aucune autre) : "t
     });
 
     const aiResult = JSON.parse(completion.choices[0].message.content);
-
-    // Décompter 1 crédit après succès
-    await pool.query('UPDATE users SET credits = credits - 1 WHERE phoneNumber = ?', [phoneNumber]);
-
+    // On ne décompte plus de crédit car l'IA est gratuite
     res.json(aiResult);
 
   } catch (error) {
