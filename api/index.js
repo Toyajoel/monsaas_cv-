@@ -5,10 +5,11 @@ import pdfParse from 'pdf-parse';
 import Tesseract from 'tesseract.js';
 import Groq from 'groq-sdk';
 import axios from 'axios';
-import { uuid } from 'uuidv4';
 import pool from './db.js';
 import dotenv from 'dotenv';
 dotenv.config();
+
+console.log("Server starting...");
 
 const app = express();
 
@@ -126,7 +127,7 @@ app.post('/api/pay/initiate', async (req, res) => {
     });
 
     const transactionData = response.data.data;
-    const transactionId = transactionData.reference || transactionData.id;
+    const transactionId = transactionData.reference || transactionData.id || `TX-${Date.now()}`;
 
     // Sauvegarder la transaction dans TiDB
     await pool.query('INSERT INTO transactions (id, phoneNumber, amount, status) VALUES (?, ?, ?, ?)',

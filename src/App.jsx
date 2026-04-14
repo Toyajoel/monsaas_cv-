@@ -140,9 +140,9 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phoneNumber: mtnNumber })
       });
-      const result = await response.json();
+      const result = await response.json().catch(() => null);
 
-      if (response.ok) {
+      if (response.ok && result) {
         // Rediriger ou ouvrir l'URL de checkout dans un nouvel onglet
         if (result.checkoutUrl) {
           window.open(result.checkoutUrl, '_blank');
@@ -186,7 +186,8 @@ function App() {
         setIsPaying(false);
       }
     } catch (error) {
-      alert("Erreur de connexion au service de paiement.");
+      console.error("Erreur technique:", error);
+      alert("Erreur technique de connexion. Vérifiez la console.");
       setIsPaying(false);
     }
   };
