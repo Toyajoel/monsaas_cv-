@@ -62,31 +62,35 @@ function App() {
     if (!file) return;
     
     setIsGeneratingJob(true);
-    const formData = new FormData();
-    formData.append('file', file);
     
     try {
-      console.log("Envoi du fichier vers :", `${API_URL}/api/extract-pdf`);
-      const response = await fetch(`${API_URL}/api/extract-pdf`, {
-        method: 'POST',
-        body: formData,
-      });
+      console.log("Extraction locale en cours (côté navigateur)...");
+      let extractedText = "";
 
-      const result = await response.json().catch(() => null);
-      
-      if (!response.ok) {
-        const errorMsg = result?.error || `Le serveur a répondu avec une erreur ${response.status}`;
-        throw new Error(errorMsg);
-      }
-
-      if (result && result.text) {
-        setJobDescription(result.text);
+      if (file.type === 'application/pdf') {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          extractedText += content.items.map(item => item.str).join(' ') + '\n';
+        }
+      } else if (file.type.startsWith('image/')) {
+        // Optionnel : on peut configurer un tracker de progression ici
+        const result = await window.Tesseract.recognize(file, 'fra+eng');
+        extractedText = result.data.text;
       } else {
-        throw new Error("Aucun texte n'a pu être extrait du fichier.");
+        throw new Error("Format non supporté. Veuillez utiliser un PDF ou une Image.");
       }
+
+      if (!extractedText || extractedText.trim().length === 0) {
+        throw new Error("Le fichier semble vide ou illisible.");
+      }
+
+      setJobDescription(extractedText);
     } catch (error) {
       console.error("Erreur complète :", error);
-      alert("Erreur : " + error.message);
+      alert("Erreur d'extraction : " + error.message);
     } finally {
       setIsGeneratingJob(false);
     }
