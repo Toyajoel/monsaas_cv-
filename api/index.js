@@ -28,10 +28,8 @@ app.post('/api/extract-pdf', upload.single('file'), async (req, res) => {
 
     if (mimeType === 'application/pdf') {
       try {
-        // Importation plus robuste pour Vercel
-        const { default: pdfParse } = await import('pdf-parse/lib/pdf-parse.js');
-        const data = await pdfParse(req.file.buffer);
-        extractedText = data.text;
+        const { default: extractTextFromPDF } = await import('./pdf-helper.cjs');
+        extractedText = await extractTextFromPDF(req.file.buffer);
       } catch (pdfErr) {
         console.error("PDF Parsing Error:", pdfErr);
         throw new Error(`Échec de lecture du PDF : ${pdfErr.message}`);
