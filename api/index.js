@@ -143,18 +143,34 @@ CONTRAINTES ABSOLUES :
         { role: 'user', content: userPrompt }
       ],
       model: 'qwen/qwen3-32b',
-      response_format: { type: 'json_object' },
-      temperature: 0.4, // Créatif mais précis
+      temperature: 0.4,
       max_tokens: 4096
     });
 
     const rawContent = completion.choices[0].message.content;
     let parsed;
     try {
+      // Tentative 1 : parse direct
       parsed = JSON.parse(rawContent);
-    } catch (parseErr) {
-      console.error('JSON parse error from AI:', rawContent);
-      return res.status(500).json({ error: "L'IA a renvoyé une réponse invalide. Réessayez." });
+    } catch (e1) {
+      try {
+        // Tentative 2 : extraire le JSON depuis un bloc markdown ```json ... ```
+        const jsonMatch = rawContent.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (jsonMatch) {
+          parsed = JSON.parse(jsonMatch[1].trim());
+        } else {
+          // Tentative 3 : extraire le premier objet JSON { ... } trouvé dans la réponse
+          const objMatch = rawContent.match(/\{[\s\S]*\}/);
+          if (objMatch) {
+            parsed = JSON.parse(objMatch[0]);
+          } else {
+            throw new Error('Aucun JSON trouvé dans la réponse IA');
+          }
+        }
+      } catch (e2) {
+        console.error('JSON parse error from AI:', rawContent.substring(0, 500));
+        return res.status(500).json({ error: "L'IA a renvoyé une réponse invalide. Réessayez." });
+      }
     }
 
     res.json(parsed);
@@ -163,6 +179,7 @@ CONTRAINTES ABSOLUES :
     res.status(500).json({ error: `Erreur IA: ${error.message}` });
   }
 });
+
 
 // --------------------------------------------------------
 // ROUTE 3: Paiement GeniusPay
