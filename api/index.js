@@ -3,6 +3,8 @@ import cors from 'cors';
 import multer from 'multer';
 import axios from 'axios';
 import pool from './db.js';
+import PDFParser from 'pdf2json';
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -28,8 +30,13 @@ app.post('/api/extract-pdf', upload.single('file'), async (req, res) => {
 
     if (mimeType === 'application/pdf') {
       try {
-        const { default: extractTextFromPDF } = await import('./pdf-helper.cjs');
-        extractedText = await extractTextFromPDF(req.file.buffer);
+        const extractPDF = (buffer) => new Promise((resolve, reject) => {
+          const pdfParser = new PDFParser(null, 1);
+          pdfParser.on("pdfParser_dataError", errData => reject(errData.parserError));
+          pdfParser.on("pdfParser_dataReady", () => resolve(pdfParser.getRawTextContent()));
+          pdfParser.parseBuffer(buffer);
+        });
+        extractedText = await extractPDF(req.file.buffer);
       } catch (pdfErr) {
         console.error("PDF Parsing Error:", pdfErr);
         throw new Error(`Échec de lecture du PDF : ${pdfErr.message}`);
