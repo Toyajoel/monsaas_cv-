@@ -27,9 +27,25 @@ app.post('/api/extract-pdf', upload.single('file'), async (req, res) => {
     console.log(`Extraction débutée pour: ${mimeType}`);
 
     if (mimeType === 'application/pdf') {
-      extractedText = "TEST PDF RÉUSSI : Le serveur a bien reçu votre fichier, mais la retranscription réelle est désactivée pour ce test.";
+      try {
+        const { createRequire } = await import('module');
+        const require = createRequire(import.meta.url);
+        const pdfParse = require('pdf-parse');
+        const data = await pdfParse(req.file.buffer);
+        extractedText = data.text;
+      } catch (pdfErr) {
+        console.error("PDF Parsing Error:", pdfErr);
+        throw new Error(`Échec de lecture du PDF : ${pdfErr.message}`);
+      }
     } else {
-      extractedText = "TEST IMAGE RÉUSSI : Le serveur a bien reçu votre image, mais la retranscription réelle est désactivée pour ce test.";
+      try {
+        const { default: Tesseract } = await import('tesseract.js');
+        const { data: { text } } = await Tesseract.recognize(req.file.buffer, 'fra+eng');
+        extractedText = text;
+      } catch (tessErr) {
+        console.error("OCR Error:", tessErr);
+        throw new Error(`Échec de lecture de l'image : ${tessErr.message}`);
+      }
     }
 
     if (!extractedText || extractedText.trim().length === 0) {
