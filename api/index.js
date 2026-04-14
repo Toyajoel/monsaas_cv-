@@ -122,16 +122,17 @@ ${JSON.stringify(currentData, null, 2)}
 
 4. **PROJET** : Mets en avant les projets les plus alignés avec l'offre. Reformule pour montrer l'impact et les technologies/méthodes recherchées.
 
-5. **EDUCATION** : Reste factuel mais met en avant les formations les plus pertinentes pour ce poste en premier.
+5. **EDUCATION** : NE PAS juste copier les formations. Réécris chaque formation en mettant en valeur CE QUI INTÉRESSE LE RECRUTEUR dans le contexte de cette offre. Ajoute une ligne de contexte si pertinent (ex: mention, spécialisation, projet de fin d'études lié au poste). Trie par pertinence pour CE poste, pas juste par date. Format : "• [Diplôme] - [École] ([Année])\n  → [Spécialisation ou point fort utile pour ce poste]".
 
 6. **QUALITE** : 4-5 qualités en bullet points "•" directement liées aux besoins du poste (ex: si l'offre demande "autonome" → mets "Autonomie et proactivité").
 
-7. **METHODES** : Liste les méthodes/outils de travail qui correspondent aux pratiques mentionnées dans l'offre.
+7. **METHODES** : C'est une section CRITIQUE. Réécris complètement les méthodes de travail pour qu'elles reflètent exactement les pratiques, outils et frameworks mentionnés dans l'offre. Si l'offre mentionne Agile → mets "Méthodologie Agile / Scrum". Si elle mentionne autonomie → "Gestion autonome des priorités". Si elle parle de reporting → "Suivi de KPIs et reporting hebdomadaire". Génère 4-6 méthodes concrètes en bullets "•" adaptées au contexte du poste.
 
 8. **LANGUE** : Conserve les langues existantes, reformule le niveau si nécessaire.
 
 CONTRAINTES ABSOLUES :
-- Ne JAMAIS inventer des diplômes, entreprises ou compétences qui n'existent pas dans le CV original
+- Pour EDUCATION et METHODES : tu peux adapter et enrichir la formulation mais pas inventer des diplômes ou entreprises inexistants
+- Tu DOIS obligatoirement réécrire TOUS les champs listés. Ne laisser aucun champ identique à l'original.
 - Ne PAS modifier : name, email, phone, address, photo
 - Retourner UNIQUEMENT un JSON valide avec les mêmes clés que le CV original
 - Chaque champ doit être une STRING (les sauts de ligne avec \\n)`;
