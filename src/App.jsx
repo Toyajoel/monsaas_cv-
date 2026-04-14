@@ -264,11 +264,21 @@ function App() {
     window.speechSynthesis.cancel();
     
     const utterance = new SpeechSynthesisUtterance(text);
+    // Anti-Garbage-Collection Hack pour Chrome (le navigateur supprime parfois l'objet avant la fin)
+    window.__currentUtterance = utterance;
+    
     utterance.lang = 'fr-FR';
     utterance.rate = 0.9;
     
-    utterance.onend = () => { if (onEndCallback) onEndCallback(); };
-    utterance.onerror = () => { if (onEndCallback) onEndCallback(); };
+    utterance.onend = () => { 
+      window.__currentUtterance = null;
+      if (onEndCallback) onEndCallback(); 
+    };
+    utterance.onerror = (e) => { 
+      console.error("SpeechSynth Error", e);
+      window.__currentUtterance = null;
+      if (onEndCallback) onEndCallback(); 
+    };
     
     window.speechSynthesis.speak(utterance);
     
@@ -329,6 +339,14 @@ function App() {
 
     recognition.onstart = () => setIsRecording(true);
     
+    recognition.onerror = (event) => {
+      console.error("Erreur Micro:", event.error);
+      if (event.error === 'not-allowed') {
+        alert("Permission du microphone refusée. Veuillez l'autoriser dans votre navigateur.");
+      }
+      setIsRecording(false);
+    };
+
     recognition.onresult = (event) => {
       let current = '';
       for (let i = 0; i < event.results.length; i++) {
@@ -346,8 +364,8 @@ function App() {
           startInterview(false, transcriptionRef.current);
         }
       } else {
-        // S'il n'a rien dit ou juste un bruit, on relance le micro silencieux
-        if (!isAnalyzingRef.current) {
+        // Relance après petit silence
+        if (!isAnalyzingRef.current && window.__currentUtterance === null) {
           setTimeout(() => {
             try { autoListen(); } catch(e){}
           }, 300);
