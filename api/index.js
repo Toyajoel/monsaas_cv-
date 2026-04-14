@@ -89,25 +89,62 @@ app.post('/api/generate-cv', async (req, res) => {
     const { default: Groq } = await import('groq-sdk');
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-    const prompt = `Tu es un expert en rédaction de CV. Optimise ce CV JSON pour correspondre exactement à cette offre d'emploi.
-    
-OFFRE D'EMPLOI:
+    const systemPrompt = `Tu es un EXPERT SENIOR en rédaction de CV et en recrutement avec 15 ans d'expérience dans les RH internationales. Tu maîtrises :
+- Le COPYWRITING persuasif pour CV (méthode STAR: Situation, Tâche, Action, Résultat)
+- L'optimisation ATS (Applicant Tracking System) : tu insères les mots-clés exacts de l'offre
+- L'utilisation de VERBES D'ACTION FORTS au passé (Ex: Piloté, Développé, Optimisé, Généré, Conçu, Dirigé, Négocié, Lancé, Transformé, Réduit, Augmenté, Managé)
+- La QUANTIFICATION des résultats (%, chiffres, délais)
+- La rédaction d'un BIO/RÉSUMÉ accrocheur de 3-4 lignes qui donne envie de lire la suite
+
+Ta mission : transformer un CV ordinaire en un CV qui décroche des entretiens.`;
+
+    const userPrompt = `Analyse cette offre d'emploi et optimise ce CV pour maximiser les chances d'être recruté.
+
+═══════════════════════════════════════
+📋 OFFRE D'EMPLOI CIBLE :
+═══════════════════════════════════════
 ${jobDescription}
 
-CV ACTUEL (JSON):
-${JSON.stringify(currentData)}
+═══════════════════════════════════════
+📄 CV ACTUEL (format JSON) :
+═══════════════════════════════════════
+${JSON.stringify(currentData, null, 2)}
 
-INSTRUCTIONS STRICTES:
-- Retourne UNIQUEMENT un objet JSON valide avec exactement les mêmes clés que le CV actuel.
-- Ne modifie PAS les champs: name, email, phone, address, photo.
-- Réécris UNIQUEMENT: bio, skills, experience, education, projet, qualite, methodes, langue.
-- Ne mens pas, adapte seulement le style et la priorité des informations existantes.
-- Le JSON doit être complet et parseable.`;
-    
+═══════════════════════════════════════
+🎯 RÈGLES DE RÉÉCRITURE OBLIGATOIRES :
+═══════════════════════════════════════
+
+1. **BIO** : Rédige un accroche percutant de 3-4 lignes. Commence par le profil, mentionne les années d'expérience, cite 2-3 compétences clés de l'offre, et termine par la valeur ajoutée apportée à l'employeur. Style direct, professionnel, sans "je".
+
+2. **SKILLS (Compétences techniques)** : Liste 6-8 compétences en bullet points "•", triées par pertinence pour CE poste. Reprends les termes EXACTS utilisés dans l'offre pour maximiser le score ATS.
+
+3. **EXPERIENCE** : Pour chaque expérience, réécris les bullets avec des verbes d'action forts + chiffres si possible. Format : "• [Verbe fort passé] [action] [résultat mesurable si possible]". Ex: "• Piloté le déploiement d'une solution CRM pour 200 utilisateurs, réduisant les délais de traitement de 30%".
+
+4. **PROJET** : Mets en avant les projets les plus alignés avec l'offre. Reformule pour montrer l'impact et les technologies/méthodes recherchées.
+
+5. **EDUCATION** : Reste factuel mais met en avant les formations les plus pertinentes pour ce poste en premier.
+
+6. **QUALITE** : 4-5 qualités en bullet points "•" directement liées aux besoins du poste (ex: si l'offre demande "autonome" → mets "Autonomie et proactivité").
+
+7. **METHODES** : Liste les méthodes/outils de travail qui correspondent aux pratiques mentionnées dans l'offre.
+
+8. **LANGUE** : Conserve les langues existantes, reformule le niveau si nécessaire.
+
+CONTRAINTES ABSOLUES :
+- Ne JAMAIS inventer des diplômes, entreprises ou compétences qui n'existent pas dans le CV original
+- Ne PAS modifier : name, email, phone, address, photo
+- Retourner UNIQUEMENT un JSON valide avec les mêmes clés que le CV original
+- Chaque champ doit être une STRING (les sauts de ligne avec \\n)`;
+
     const completion = await groq.chat.completions.create({
-      messages: [{ role: 'user', content: prompt }],
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
       model: 'llama-3.3-70b-versatile',
-      response_format: { type: 'json_object' }
+      response_format: { type: 'json_object' },
+      temperature: 0.4, // Créatif mais précis
+      max_tokens: 4096
     });
 
     const rawContent = completion.choices[0].message.content;
