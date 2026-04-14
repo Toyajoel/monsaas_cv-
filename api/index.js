@@ -1,16 +1,16 @@
-const express = require('express');
-const cors = require('cors');
-const multer = require('multer');
-const pdfParse = require('pdf-parse');
-const Tesseract = require('tesseract.js');
-const Groq = require('groq-sdk');
-const axios = require('axios');
-const { uuid } = require('uuidv4');
-const pool = require('./db.cjs');
-require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
+import express from 'express';
+import cors from 'cors';
+import multer from 'multer';
+import pdfParse from 'pdf-parse/lib/pdf-parse.js';
+import Tesseract from 'tesseract.js';
+import Groq from 'groq-sdk';
+import axios from 'axios';
+import { v4 as uuidv4 } from 'uuid';
+import pool from './db.js';
+import dotenv from 'dotenv';
+dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
@@ -39,7 +39,7 @@ app.post('/api/extract-pdf', upload.single('file'), async (req, res) => {
       const { data: { text } } = await Tesseract.recognize(fileBuffer, 'fra+eng');
       extractedText = text;
     } else {
-      return res.status(400).json({ error: 'Format non supporté (utilisez PDF ou Image).' });
+      return res.status(400).json({ error: 'Format de fichier non supporté (utilisez PDF ou Image).' });
     }
 
     res.json({ text: extractedText });
@@ -50,14 +50,14 @@ app.post('/api/extract-pdf', upload.single('file'), async (req, res) => {
 });
 
 // --------------------------------------------------------
-// ROUTE 2: Générer le CV avec l'IA Groq
+// ROUTE 2: Générer le CV parfait avec l'IA Groq
 // --------------------------------------------------------
 app.post('/api/generate-cv', async (req, res) => {
   try {
     const { currentData, jobDescription } = req.body;
 
     if (!jobDescription) {
-      return res.status(400).json({ error: "L'offre d'emploi est requise." });
+      return res.status(400).json({ error: "L'offre d'emploi (jobDescription) est requise." });
     }
 
     const prompt = `
@@ -69,13 +69,14 @@ Voici l'offre d'emploi visée :
 "${jobDescription}"
 
 MISSION : Mettre à jour et optimiser le profil du candidat pour que son CV soit parfait pour cette offre précise.
-- CHANGE IMPÉRATIVEMENT LE TITRE ("title") pour correspondre EXACTEMENT à l'offre.
-- Réinvente la "bio" pour prouver que le candidat est LE candidat idéal.
-- Remplace les "skills", "qualite", "methodes" avec les mots-clés exacts de l'offre.
-- Transforme les descriptions "experience" et "projet" avec un vocabulaire puissant.
-- Utilise toujours \\n pour les sauts de ligne dans les champs longs.
+- CHANGE IMPÉRATIVEMENT LE TITRE ("title") pour qu'il corresponde EXACTEMENT à la demande de l'offre d'emploi.
+- Réinvente et reformule TOTALEMENT la "bio" pour prouver que le candidat est LE candidat idéal pour CE poste précis.
+- Remplace, ajuste et invente de nouvelles "skills", "qualite", "methodes" pertinentes qui contiennent les mots-clés exacts de l'offre.
+- Transforme complètement les descriptions des "experience" et "projet" pour faire croire que toutes ses missions passées l'ont préparé à cette offre. Utilise un vocabulaire puissant.
+- Utilise toujours \\n pour faire de beaux sauts de ligne dans les champs longs.
+- Règle d'or : Tu as le feu vert absolu pour réécrire, adapter, modifier ou inventer tout le contenu afin de séduire le recruteur pour CETTE RECHERCHE.
 
-Retourne un objet JSON avec EXACTEMENT ces clés : "title", "bio", "skills", "methodes", "qualite", "langue", "experience", "projet", "education".
+Tu DOIS retourner un objet JSON avec EXACTEMENT ces clés (et aucune autre) : "title", "bio", "skills", "methodes", "qualite", "langue", "experience", "projet", "education".
     `;
 
     const completion = await groq.chat.completions.create({
@@ -87,7 +88,7 @@ Retourne un objet JSON avec EXACTEMENT ces clés : "title", "bio", "skills", "me
     const aiResult = JSON.parse(completion.choices[0].message.content);
     res.json(aiResult);
   } catch (error) {
-    console.error('Erreur Groq:', error);
+    console.error('Erreur API Génération CV avec Groq:', error);
     res.status(500).json({ error: 'Erreur Serveur IA avec Groq.' });
   }
 });
@@ -111,7 +112,9 @@ app.post('/api/pay/initiate', async (req, res) => {
     const payload = {
       amount: 650,
       description: 'Achat de 5 crédits CV AI (Cameroun)',
-      customer: { phone: formattedPhone }
+      customer: {
+        phone: formattedPhone
+      }
     };
 
     const response = await axios.post(process.env.GENIUSPAY_API_URL, payload, {
@@ -119,25 +122,21 @@ app.post('/api/pay/initiate', async (req, res) => {
         'X-API-Key': process.env.GENIUSPAY_PUBLIC_KEY,
         'X-API-Secret': process.env.GENIUSPAY_SECRET_KEY,
         'Content-Type': 'application/json'
-      },
-      timeout: 15000
+      }
     });
 
     const transactionData = response.data.data;
     const transactionId = transactionData.reference || transactionData.id;
 
-    await pool.query(
-      'INSERT INTO transactions (id, phoneNumber, amount, status) VALUES (?, ?, ?, ?)',
-      [transactionId, formattedPhone, 650, 'PENDING']
-    );
+    // Sauvegarder la transaction dans TiDB
+    await pool.query('INSERT INTO transactions (id, phoneNumber, amount, status) VALUES (?, ?, ?, ?)',
+      [transactionId, formattedPhone, 650, 'PENDING']);
 
-    await pool.query(
-      'INSERT IGNORE INTO users (phoneNumber, credits) VALUES (?, ?)',
-      [formattedPhone, 0]
-    );
+    // S'assurer que l'utilisateur existe dans TiDB
+    await pool.query('INSERT IGNORE INTO users (phoneNumber, credits) VALUES (?, ?)', [formattedPhone, 0]);
 
     res.json({
-      transactionId,
+      transactionId: transactionId,
       status: transactionData.status,
       checkoutUrl: transactionData.checkout_url || transactionData.payment_url
     });
@@ -149,7 +148,7 @@ app.post('/api/pay/initiate', async (req, res) => {
 });
 
 // --------------------------------------------------------
-// ROUTE 4: Vérifier le statut du paiement
+// ROUTE 4: Vérifier le statut du paiement et créditer
 // --------------------------------------------------------
 app.get('/api/pay/status/:id', async (req, res) => {
   try {
@@ -158,18 +157,15 @@ app.get('/api/pay/status/:id', async (req, res) => {
       headers: {
         'X-API-Key': process.env.GENIUSPAY_PUBLIC_KEY,
         'X-API-Secret': process.env.GENIUSPAY_SECRET_KEY,
-      },
-      timeout: 10000
+      }
     });
 
     const transactionData = response.data.data;
     const currentStatus = transactionData.status?.toLowerCase();
 
     if (currentStatus === 'completed' || currentStatus === 'success') {
-      const [trans] = await pool.query(
-        'SELECT phoneNumber, status FROM transactions WHERE id = ?',
-        [id]
-      );
+      const [trans] = await pool.query('SELECT phoneNumber, status FROM transactions WHERE id = ?', [id]);
+
       if (trans.length && trans[0].status === 'PENDING') {
         await pool.query('UPDATE transactions SET status = ? WHERE id = ?', [currentStatus, id]);
         await pool.query('UPDATE users SET credits = credits + 5 WHERE phoneNumber = ?', [trans[0].phoneNumber]);
@@ -191,21 +187,14 @@ app.get('/api/pay/status/:id', async (req, res) => {
 app.get('/api/credits/:phoneNumber', async (req, res) => {
   try {
     const { phoneNumber } = req.params;
-    const [users] = await pool.query(
-      'SELECT credits FROM users WHERE phoneNumber = ?',
-      [phoneNumber]
-    );
-    if (!users.length) return res.json({ credits: 0 });
+    const [users] = await pool.query('SELECT credits FROM users WHERE phoneNumber = ?', [phoneNumber]);
+    if (!users.length) {
+      return res.json({ credits: 0 });
+    }
     res.json({ credits: users[0].credits });
   } catch (error) {
     res.status(500).json({ error: 'Erreur lors de la récupération des crédits.' });
   }
 });
 
-module.exports = app;
-
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(port, () => {
-    console.log(`🚀 Serveur démarré sur le port ${port}`);
-  });
-}
+export default app;

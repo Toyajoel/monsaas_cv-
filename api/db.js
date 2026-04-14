@@ -1,5 +1,6 @@
-const mysql = require('mysql2/promise');
-require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
+import mysql from 'mysql2/promise';
+import dotenv from 'dotenv';
+dotenv.config();
 
 const pool = mysql.createPool({
   host: process.env.TIDB_HOST,
@@ -48,4 +49,4 @@ async function initDB() {
 
 initDB();
 
-module.exports = pool;
+export default pool;
