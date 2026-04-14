@@ -39,14 +39,8 @@ app.post('/api/extract-pdf', upload.single('file'), async (req, res) => {
         throw new Error(`Erreur PDF: ${pdfErr.message}`);
       }
     } else {
-      try {
-        // Tesseract peut mettre du temps, on utilise l'import dynamique pour isoler le chargement
-        const { default: Tesseract } = await import('tesseract.js');
-        const { data: { text } } = await Tesseract.recognize(req.file.buffer, 'fra+eng');
-        extractedText = text;
-      } catch (tessErr) {
-        throw new Error(`Erreur Image (OCR): ${tessErr.message}`);
-      }
+      // Désactivation temporaire pour test
+      throw new Error(`L'extraction d'images est désactivée pour test. Utilisez un PDF.`);
     }
 
     if (!extractedText || extractedText.trim().length === 0) {
