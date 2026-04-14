@@ -45,6 +45,11 @@ function App() {
   const [transcript, setTranscript] = useState("");
   const [feedback, setFeedback] = useState("");
   const transcriptionRef = useRef("");
+  const isAnalyzingRef = useRef(false);
+
+  useEffect(() => {
+    isAnalyzingRef.current = isAnalyzing;
+  }, [isAnalyzing]);
 
   // Sync credits with TiDB on mount if phone is present
   useEffect(() => {
@@ -253,17 +258,24 @@ function App() {
   // --- INTERVIEW COACH LOGIC ---
   const speak = (text, onEndCallback) => {
     if (!window.speechSynthesis) {
-        if(onEndCallback) onEndCallback();
+        if (onEndCallback) onEndCallback();
         return;
     }
     window.speechSynthesis.cancel();
+    
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'fr-FR';
     utterance.rate = 0.9;
-    utterance.onend = () => {
-      if (onEndCallback) onEndCallback();
-    };
+    
+    utterance.onend = () => { if (onEndCallback) onEndCallback(); };
+    utterance.onerror = () => { if (onEndCallback) onEndCallback(); };
+    
     window.speechSynthesis.speak(utterance);
+    
+    // Chrome bug fix: force resume if stuck
+    if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    }
   };
 
   const startInterview = async (isFirst = true, userText = null) => {
@@ -308,7 +320,7 @@ function App() {
 
   const autoListen = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return; // Silent fallback
+    if (!SpeechRecognition) return;
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'fr-FR';
@@ -316,6 +328,7 @@ function App() {
     transcriptionRef.current = "";
 
     recognition.onstart = () => setIsRecording(true);
+    
     recognition.onresult = (event) => {
       let current = '';
       for (let i = 0; i < event.results.length; i++) {
@@ -324,23 +337,35 @@ function App() {
       setTranscript(current);
       transcriptionRef.current = current;
     };
+    
     recognition.onend = () => {
       setIsRecording(false);
-      // Dès que l'utilisateur arrête de parler, on envoie sa réponse à l'IA s'il a dit quelque chose
-      if (transcriptionRef.current.trim().length > 2) {
-        startInterview(false, transcriptionRef.current);
+      // Si l'utilisateur a réellement parlé
+      if (transcriptionRef.current.trim().length > 3) {
+        if (!isAnalyzingRef.current) {
+          startInterview(false, transcriptionRef.current);
+        }
+      } else {
+        // S'il n'a rien dit ou juste un bruit, on relance le micro silencieux
+        if (!isAnalyzingRef.current) {
+          setTimeout(() => {
+            try { autoListen(); } catch(e){}
+          }, 300);
+        }
       }
     };
+    
     try {
       recognition.start();
     } catch (e) {
-      console.warn("Recognition already started or error: ", e);
+      console.warn("Démarrage micro impossible:", e);
     }
   };
 
   const toggleRecording = () => {
     if (isRecording) {
       setIsRecording(false);
+      transcriptionRef.current = "fin"; // Force arrêt
       return;
     }
     autoListen();
