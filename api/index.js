@@ -141,7 +141,7 @@ CONTRAINTES ABSOLUES :
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
       ],
-      model: 'llama-3.3-70b-versatile',
+      model: 'qwen/qwen3-32b',
       response_format: { type: 'json_object' },
       temperature: 0.4, // Créatif mais précis
       max_tokens: 4096
