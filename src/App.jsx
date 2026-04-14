@@ -72,18 +72,17 @@ function App() {
         body: formData,
       });
 
-      const contentType = response.headers.get("content-type");
-      if (!response.ok || !contentType || !contentType.includes("application/json")) {
-        const errorText = await response.text();
-        console.error("Réponse serveur invalide :", errorText);
-        throw new Error(`Le serveur a répondu avec une erreur (Code ${response.status})`);
+      const result = await response.json().catch(() => null);
+      
+      if (!response.ok) {
+        const errorMsg = result?.error || `Le serveur a répondu avec une erreur ${response.status}`;
+        throw new Error(errorMsg);
       }
 
-      const result = await response.json();
-      if (result.text) {
+      if (result && result.text) {
         setJobDescription(result.text);
       } else {
-        throw new Error(result.error || "Aucun texte n'a pu être extrait.");
+        throw new Error("Aucun texte n'a pu être extrait du fichier.");
       }
     } catch (error) {
       console.error("Erreur complète :", error);
