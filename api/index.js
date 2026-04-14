@@ -156,7 +156,57 @@ app.get('/api/credits/:phoneNumber', async (req, res) => {
     const [users] = await pool.query('SELECT credits FROM users WHERE phoneNumber = ?', [req.params.phoneNumber]);
     res.json({ credits: users[0]?.credits || 0 });
   } catch (error) {
-    res.json({ credits: 0 }); // Fallback silent
+    res.json({ credits: 0 });
+  }
+});
+
+// --------------------------------------------------------
+// ROUTE 6: Coach d'Entretien (Intelligence)
+// --------------------------------------------------------
+app.post('/api/interview/next', async (req, res) => {
+  try {
+    const { cvData, jobDescription, history, lastUserResponse } = req.body;
+    const { default: Groq } = await import('groq-sdk');
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+    let systemPrompt = `
+      Tu es un recruteur expert et exigeant. Tu mènes un entretien d'embauche.
+      Voici le CV du candidat : ${JSON.stringify(cvData)}
+      Voici le poste visé : ${jobDescription}
+
+      TON RÔLE :
+      1. Si c'est le début (pas de history), salue le candidat et pose la première question.
+      2. Si le candidat a répondu (${lastUserResponse}), analyse BRIÈVEMENT sa réponse (donne un micro-conseil) puis pose la question suivante.
+      3. Sois professionnel, un peu difficile mais constructif.
+      4. Tes questions doivent être PRÉCISES par rapport à ses expériences listées dans son CV.
+
+      Format de réponse JSON uniquement :
+      {
+        "feedback": "Court commentaire sur la réponse précédente (optionnel)",
+        "question": "Ta prochaine question d'entretien",
+        "finished": false
+      }
+    `;
+
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...history.map(h => ({ role: h.role, content: h.content }))
+    ];
+    
+    if (lastUserResponse) {
+      messages.push({ role: 'user', content: lastUserResponse });
+    }
+
+    const completion = await groq.chat.completions.create({
+      messages,
+      model: 'llama-3.3-70b-versatile',
+      response_format: { type: 'json_object' }
+    });
+
+    res.json(JSON.parse(completion.choices[0].message.content));
+  } catch (error) {
+    console.error('Erreur Interview:', error);
+    res.status(500).json({ error: 'Erreur Coach.' });
   }
 });
 
