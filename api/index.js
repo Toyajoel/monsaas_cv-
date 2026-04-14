@@ -10,9 +10,13 @@ dotenv.config();
 console.log("Server starting...");
 
 const app = express();
-
 app.use(cors());
 app.use(express.json());
+
+// Health check route
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Backend is running' });
+});
 
 const upload = multer({ storage: multer.memoryStorage() });
 

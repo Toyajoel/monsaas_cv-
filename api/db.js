@@ -47,6 +47,6 @@ async function initDB() {
   }
 }
 
-initDB();
+// initDB(); // Désactivé pour éviter les plantages au démarrage sur Vercel
 
 export default pool;
