@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import html2pdf from 'html2pdf.js';
-import { Phone, Mail, MapPin, User, Settings, CheckCircle, Globe, Briefcase, GraduationCap, Folder, Sparkles, Bot, Loader2, FileText, Lock, CreditCard } from 'lucide-react';
+import { Phone, Mail, MapPin, User, Settings, CheckCircle, Globe, Briefcase, GraduationCap, Folder, Sparkles, Bot, Loader2, FileText, Lock, CreditCard, Mic, MicOff, Volume2, MessageCircle } from 'lucide-react';
 
 const API_URL = import.meta.env.PROD ? '' : (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000');
 
@@ -36,6 +36,14 @@ function App() {
   const [mtnNumber, setMtnNumber] = useState(localStorage.getItem('premium_phone') || '');
   const [isPaying, setIsPaying] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState(null); // 'PENDING', 'COMPLETED', 'FAILED'
+  
+  // Interview Coach State
+  const [interviewHistory, setInterviewHistory] = useState([]);
+  const [currentQuestion, setCurrentQuestion] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [feedback, setFeedback] = useState("");
 
   // Sync credits with TiDB on mount if phone is present
   useEffect(() => {
@@ -211,6 +219,71 @@ function App() {
     alert("Téléchargement réussi ! Il vous reste " + (credits - 1) + " crédits.");
   };
 
+  // --- INTERVIEW COACH LOGIC ---
+  const speak = (text) => {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'fr-FR';
+    utterance.rate = 0.9;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const startInterview = async (isFirst = true) => {
+    setIsAnalyzing(true);
+    try {
+      const response = await fetch(`${API_URL}/api/interview/next`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cvData: data,
+          jobDescription: jobDescription,
+          history: interviewHistory,
+          lastUserResponse: isFirst ? null : transcript
+        })
+      });
+
+      const result = await response.json();
+      setFeedback(result.feedback || "");
+      setCurrentQuestion(result.question);
+      setInterviewHistory(prev => [
+        ...prev,
+        isFirst ? null : { role: 'user', content: transcript },
+        { role: 'assistant', content: result.question }
+      ].filter(Boolean));
+      
+      setTranscript("");
+      speak(result.question);
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de l'appel du coach.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const toggleRecording = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return alert("Votre navigateur ne supporte pas la reconnaissance vocale.");
+
+    if (isRecording) {
+      setIsRecording(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'fr-FR';
+    recognition.interimResults = true;
+
+    recognition.onstart = () => setIsRecording(true);
+    recognition.onresult = (event) => {
+      const current = event.results[event.results.length - 1][0].transcript;
+      setTranscript(current);
+    };
+    recognition.onend = () => setIsRecording(false);
+    recognition.start();
+  };
+
 
   const renderTextWithBreaks = (text, defaultText) => {
     const content = text || defaultText;
@@ -265,7 +338,7 @@ function App() {
         {/* Left Panel: Controls */}
         <div className="w-full lg:w-1/3 bg-gray-50 border-b lg:border-b-0 lg:border-r p-4 lg:p-6 flex flex-col h-[500px] lg:h-auto overflow-y-auto">
           <div className="flex space-x-2 mb-4">
-            {['form', 'design', 'ia'].map(tab => (
+            {['form', 'design', 'ia', 'interview'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -273,14 +346,95 @@ function App() {
               >
                 {tab === 'form' && '📝 Contenu'}
                 {tab === 'design' && '🎨 Design'}
-                {tab === 'ia' && <><Sparkles size={12}/> Matcher Offre</>}
+                {tab === 'ia' && <><Sparkles size={12}/> Matcher</>}
+                {tab === 'interview' && <><Mic size={12}/> Coach</>}
               </button>
             ))}
           </div>
 
           <div className="flex-1 overflow-y-auto pr-2 text-sm z-10">
+            {activeTab === 'interview' && (
+              <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
+                <div className="bg-gradient-to-br from-gray-900 to-blue-900 p-6 rounded-2xl shadow-xl relative overflow-hidden flex flex-col items-center text-center">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-blue-500 animate-pulse"></div>
+                  
+                  <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mb-4 ring-4 ring-blue-500/10">
+                    <Bot size={32} className="text-blue-400" />
+                  </div>
+
+                  <h3 className="text-white font-black text-xl mb-1 italic uppercase tracking-tighter">Coach Entretien AI</h3>
+                  <p className="text-blue-200 text-[10px] font-bold uppercase tracking-widest opacity-70 mb-6">Simulation Vocale Réaliste</p>
+
+                  {!currentQuestion ? (
+                    <button 
+                      onClick={() => startInterview(true)}
+                      className="group relative bg-white text-blue-900 font-black px-8 py-4 rounded-xl shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center gap-3"
+                    >
+                      <Sparkles className="text-blue-500 group-hover:rotate-12 transition-transform" />
+                      COMMENCER L'ENTRETIEN
+                    </button>
+                  ) : (
+                    <div className="w-full space-y-6">
+                      {/* IA Message Box */}
+                      <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10 text-left">
+                        {feedback && (
+                          <p className="text-green-400 text-[10px] font-bold uppercase mb-2 flex items-center gap-1">
+                            <CheckCircle size={10} /> {feedback}
+                          </p>
+                        )}
+                        <p className="text-white text-sm font-medium leading-relaxed italic">
+                          "{currentQuestion}"
+                        </p>
+                        <button onClick={() => speak(currentQuestion)} className="mt-2 text-blue-400 hover:text-blue-300 flex items-center gap-1 text-[10px] font-bold">
+                          <Volume2 size={12}/> RÉÉCOUTER
+                        </button>
+                      </div>
+
+                      {/* Waveform Visualization (Dummy) */}
+                      {isRecording && (
+                        <div className="flex justify-center items-center gap-1 h-8">
+                          {[1,2,3,4,3,2,1].map((h, i) => (
+                            <div key={i} className="w-1 bg-blue-400 rounded-full animate-bounce" style={{ height: `${h * 8}px`, animationDelay: `${i * 0.1}s` }}></div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* User Transcript */}
+                      <div className="min-h-[60px] flex items-center justify-center">
+                        <p className="text-blue-100/70 text-xs italic">
+                          {isRecording ? (transcript || "Dites votre réponse...") : (transcript ? `"${transcript}"` : "Appuyez sur le micro pour répondre")}
+                        </p>
+                      </div>
+
+                      {/* Controls */}
+                      <div className="flex items-center justify-center gap-4">
+                        <button 
+                          onClick={toggleRecording}
+                          disabled={isAnalyzing}
+                          className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-all active:scale-90 ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-blue-600 hover:bg-blue-500 text-white'}`}
+                        >
+                          {isRecording ? <MicOff size={28} /> : <Mic size={28} />}
+                        </button>
+
+                        <button 
+                          onClick={() => startInterview(false)}
+                          disabled={!transcript || isAnalyzing}
+                          className="bg-white text-blue-900 font-bold px-6 py-3 rounded-xl disabled:opacity-30 flex items-center gap-2"
+                        >
+                          {isAnalyzing ? <Loader2 className="animate-spin" /> : <MessageCircle size={18} />}
+                          RÉPONDRE
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <p className="mt-8 text-[10px] text-blue-300/50 leading-tight">
+                    L'IA analyse votre CV et l'offre d'emploi pour préparer des questions spécifiques. <br/>
+                    Répondez de manière structurée pour un meilleur feedback.
+                  </p>
+                </div>
+              </div>
             {activeTab === 'ia' && (
-              <>
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <div className="bg-gradient-to-br from-purple-600 to-indigo-700 p-5 rounded-xl shadow-lg relative overflow-hidden">
                     <div className="absolute top-0 right-0 -mr-4 -mt-4 opacity-20">
@@ -326,9 +480,8 @@ function App() {
                   <div className="bg-gray-50 border border-gray-200 p-4 rounded-lg text-xs leading-relaxed text-gray-600">
                     <strong className="block text-gray-800 mb-1">Comment ça marche ?</strong>
                     Le moteur IA lit votre CV actuel et le croise avec l'offre d'emploi. Il ne ment jamais, mais il réécrit vos phrases (Copywriting) pour mettre en lumière ce que le recruteur veut voir en priorité, maximisant vos chances d'entretien.
-                  </div>
                 </div>
-              </>
+              </div>
             )}
 
             {activeTab === 'form' && (
