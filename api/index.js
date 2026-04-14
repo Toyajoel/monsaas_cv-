@@ -32,15 +32,9 @@ app.post('/api/extract-pdf', upload.single('file'), async (req, res) => {
     console.log(`Extraction débutée pour: ${mimeType}`);
 
     if (mimeType === 'application/pdf') {
-      try {
-        const data = await pdfParse(req.file.buffer);
-        extractedText = data.text;
-      } catch (pdfErr) {
-        throw new Error(`Erreur PDF: ${pdfErr.message}`);
-      }
+      extractedText = "TEST PDF RÉUSSI : Le serveur a bien reçu votre fichier, mais la retranscription réelle est désactivée pour ce test.";
     } else {
-      // Désactivation temporaire pour test
-      throw new Error(`L'extraction d'images est désactivée pour test. Utilisez un PDF.`);
+      extractedText = "TEST IMAGE RÉUSSI : Le serveur a bien reçu votre image, mais la retranscription réelle est désactivée pour ce test.";
     }
 
     if (!extractedText || extractedText.trim().length === 0) {
