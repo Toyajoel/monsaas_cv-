@@ -4,7 +4,6 @@ import multer from 'multer';
 import axios from 'axios';
 import pool from './db.js';
 import { createRequire } from 'module';
-import Tesseract from 'tesseract.js';
 
 const require = createRequire(import.meta.url);
 const pdfParse = require('pdf-parse');
@@ -25,21 +24,39 @@ app.get('/api/health', (req, res) => {
 // --------------------------------------------------------
 app.post('/api/extract-pdf', upload.single('file'), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: 'Aucun fichier.' });
+    if (!req.file) return res.status(400).json({ error: 'Aucun fichier reçu.' });
     
     const mimeType = req.file.mimetype;
     let extractedText = '';
 
+    console.log(`Extraction débutée pour: ${mimeType}`);
+
     if (mimeType === 'application/pdf') {
-      const data = await pdfParse(req.file.buffer);
-      extractedText = data.text;
+      try {
+        const data = await pdfParse(req.file.buffer);
+        extractedText = data.text;
+      } catch (pdfErr) {
+        throw new Error(`Erreur PDF: ${pdfErr.message}`);
+      }
     } else {
-      const { data: { text } } = await Tesseract.recognize(req.file.buffer, 'fra+eng');
-      extractedText = text;
+      try {
+        // Tesseract peut mettre du temps, on utilise l'import dynamique pour isoler le chargement
+        const { default: Tesseract } = await import('tesseract.js');
+        const { data: { text } } = await Tesseract.recognize(req.file.buffer, 'fra+eng');
+        extractedText = text;
+      } catch (tessErr) {
+        throw new Error(`Erreur Image (OCR): ${tessErr.message}`);
+      }
     }
+
+    if (!extractedText || extractedText.trim().length === 0) {
+      return res.status(422).json({ error: "Le fichier est illisible ou vide." });
+    }
+
     res.json({ text: extractedText });
   } catch (error) {
-    res.status(500).json({ error: 'Erreur extraction.' });
+    console.error('Extraction Error:', error.message);
+    res.status(500).json({ error: `Erreur interne d'extraction: ${error.message}` });
   }
 });
 
