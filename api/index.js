@@ -127,8 +127,26 @@ app.get('/api/pay/status/:id', async (req, res) => {
         'X-API-Secret': process.env.GENIUSPAY_SECRET_KEY,
       }
     });
-    res.json(response.data.data);
+
+    const transactionData = response.data.data;
+    const currentStatus = transactionData.status?.toLowerCase();
+
+    // Si le paiement est réussi, on crédite l'utilisateur dans la DB
+    if (currentStatus === 'completed' || currentStatus === 'success') {
+      const [trans] = await pool.query('SELECT phoneNumber, status FROM transactions WHERE id = ?', [req.params.id]);
+      
+      if (trans.length && trans[0].status === 'PENDING') {
+        await pool.query('UPDATE transactions SET status = ? WHERE id = ?', [currentStatus, req.params.id]);
+        await pool.query('UPDATE users SET credits = credits + 5 WHERE phoneNumber = ?', [trans[0].phoneNumber]);
+        console.log(`✅ Crédits ajoutés pour ${trans[0].phoneNumber}`);
+      }
+    } else if (currentStatus === 'failed' || currentStatus === 'rejected') {
+      await pool.query('UPDATE transactions SET status = ? WHERE id = ?', [currentStatus, req.params.id]);
+    }
+
+    res.json(transactionData);
   } catch (error) {
+    console.error('Erreur Status:', error.message);
     res.status(500).json({ error: 'Erreur statut.' });
   }
 });
