@@ -80,7 +80,6 @@ app.post('/api/pay/initiate', async (req, res) => {
 
     const payload = {
       amount: 650,
-      currency: 'XAF',
       description: 'Achat de 5 crédits CV AI (Cameroun)',
       customer: { phone: formattedPhone }
     };
@@ -99,10 +98,10 @@ app.post('/api/pay/initiate', async (req, res) => {
     // On ignore l'erreur DB pour que le client puisse au moins payer
     try {
       await pool.query('INSERT INTO transactions (id, phoneNumber, amount, status) VALUES (?, ?, ?, ?)',
-        [transactionId, phoneNumber, 650, 'PENDING']);
-      await pool.query('INSERT IGNORE INTO users (phoneNumber, credits) VALUES (?, ?)', [phoneNumber, 0]);
+        [transactionId, formattedPhone, 650, 'PENDING']);
+      await pool.query('INSERT IGNORE INTO users (phoneNumber, credits) VALUES (?, ?)', [formattedPhone, 0]);
     } catch (dbErr) {
-      console.error("DB Error ignored for checkout flow", dbErr.message);
+      console.error("DB Error ignored", dbErr.message);
     }
 
     res.json({
@@ -112,7 +111,8 @@ app.post('/api/pay/initiate', async (req, res) => {
     });
   } catch (error) {
     console.error('GeniusPay Error:', error.response?.data || error.message);
-    res.status(500).json({ error: "Échec de l'initiation." });
+    const errorDetail = error.response?.data?.message || error.response?.data?.error || error.message;
+    res.status(500).json({ error: `Erreur GeniusPay: ${errorDetail}` });
   }
 });
 
