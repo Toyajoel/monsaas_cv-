@@ -41,14 +41,27 @@ app.post('/api/extract-pdf', upload.single('file'), async (req, res) => {
         console.error("PDF Parsing Error:", pdfErr);
         throw new Error(`Échec de lecture du PDF : ${pdfErr.message}`);
       }
-    } else {
+    } else if (mimeType.startsWith('image/')) {
       try {
-        const { default: Tesseract } = await import('tesseract.js');
-        const { data: { text } } = await Tesseract.recognize(req.file.buffer, 'fra+eng');
-        extractedText = text;
-      } catch (tessErr) {
-        console.error("OCR Error:", tessErr);
-        throw new Error(`Échec de lecture de l'image : ${tessErr.message}`);
+        const { default: Groq } = await import('groq-sdk');
+        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+        const base64Image = req.file.buffer.toString('base64');
+        const completion = await groq.chat.completions.create({
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Lis tout le texte (job description ou cv) présent dans cette image et renvoie UNIQUEMENT le texte, sans aucun autre commentaire.' },
+                { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64Image}` } }
+              ]
+            }
+          ],
+          model: 'llama-3.2-90b-vision-preview'
+        });
+        extractedText = completion.choices[0].message.content;
+      } catch (visionErr) {
+        console.error("Groq Vision Error:", visionErr);
+        throw new Error(`Échec Vision IA : ${visionErr.message}`);
       }
     }
 

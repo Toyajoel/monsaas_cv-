@@ -76,18 +76,21 @@ function App() {
           extractedText += content.items.map(item => item.str).join(' ') + '\n';
         }
       } else if (file.type.startsWith('image/')) {
-        setJobDescription("Téléchargement du moteur de lecture d'image en cours... patientez.");
-        const result = await window.Tesseract.recognize(file, 'fra', {
-          logger: m => {
-            console.log(m);
-            if (m.status === "recognizing text") {
-              setJobDescription(`Analyse de l'image en cours... ${Math.round(m.progress * 100)}%`);
-            } else if (m.status === "loading tesseract core" || m.status.includes("loading")) {
-              setJobDescription(`Chargement du module OCR... patientez.`);
-            }
-          }
+        setJobDescription("Analyse ultra-rapide de l'image par Vision IA en cours...");
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const response = await fetch(`${API_URL}/api/extract-pdf`, {
+          method: 'POST',
+          body: formData,
         });
-        extractedText = result.data.text;
+
+        const result = await response.json().catch(() => null);
+        
+        if (!response.ok) {
+          throw new Error(result?.error || `Le serveur a répondu: ${response.status}`);
+        }
+        extractedText = result.text;
       } else {
         throw new Error("Format non supporté. Veuillez utiliser un PDF ou une Image.");
       }
