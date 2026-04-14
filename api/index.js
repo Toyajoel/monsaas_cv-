@@ -3,6 +3,11 @@ import cors from 'cors';
 import multer from 'multer';
 import axios from 'axios';
 import pool from './db.js';
+import { createRequire } from 'module';
+import Tesseract from 'tesseract.js';
+
+const require = createRequire(import.meta.url);
+const pdfParse = require('pdf-parse');
 
 const app = express();
 app.use(cors());
@@ -26,14 +31,10 @@ app.post('/api/extract-pdf', upload.single('file'), async (req, res) => {
     let extractedText = '';
 
     if (mimeType === 'application/pdf') {
-      const { createRequire } = await import('module');
-      const require = createRequire(import.meta.url);
-      const pdfParse = require('pdf-parse');
       const data = await pdfParse(req.file.buffer);
       extractedText = data.text;
     } else {
-      const Tesseract = await import('tesseract.js');
-      const { data: { text } } = await Tesseract.default.recognize(req.file.buffer, 'fra+eng');
+      const { data: { text } } = await Tesseract.recognize(req.file.buffer, 'fra+eng');
       extractedText = text;
     }
     res.json({ text: extractedText });
