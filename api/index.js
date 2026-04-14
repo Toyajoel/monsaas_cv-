@@ -28,9 +28,8 @@ app.post('/api/extract-pdf', upload.single('file'), async (req, res) => {
 
     if (mimeType === 'application/pdf') {
       try {
-        const { createRequire } = await import('module');
-        const require = createRequire(import.meta.url);
-        const pdfParse = require('pdf-parse');
+        // Importation plus robuste pour Vercel
+        const { default: pdfParse } = await import('pdf-parse/lib/pdf-parse.js');
         const data = await pdfParse(req.file.buffer);
         extractedText = data.text;
       } catch (pdfErr) {
