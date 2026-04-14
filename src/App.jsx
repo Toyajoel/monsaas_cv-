@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import html2pdf from 'html2pdf.js';
 import { Phone, Mail, MapPin, User, Settings, CheckCircle, Globe, Briefcase, GraduationCap, Folder, Sparkles, Bot, Loader2, FileText, Lock, CreditCard } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000';
+const API_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '' : 'http://127.0.0.1:5000');
 
 function App() {
   const [activeTab, setActiveTab] = useState('form');

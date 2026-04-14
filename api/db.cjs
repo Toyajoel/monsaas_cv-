@@ -1,5 +1,5 @@
 const mysql = require('mysql2/promise');
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 
 const pool = mysql.createPool({
   host: process.env.TIDB_HOST,
@@ -16,12 +16,11 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
-// Initialiser les tables si elles n'existent pas
 async function initDB() {
   try {
     const connection = await pool.getConnection();
     console.log('✅ Connecté à TiDB Cloud');
-    
+
     await connection.query(`
       CREATE TABLE IF NOT EXISTS users (
         phoneNumber VARCHAR(20) PRIMARY KEY,
@@ -29,7 +28,7 @@ async function initDB() {
         lastPayment TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    
+
     await connection.query(`
       CREATE TABLE IF NOT EXISTS transactions (
         id VARCHAR(100) PRIMARY KEY,
@@ -39,7 +38,7 @@ async function initDB() {
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    
+
     connection.release();
     console.log('✅ Tables initialisées');
   } catch (error) {
