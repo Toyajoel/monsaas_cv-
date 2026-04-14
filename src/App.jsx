@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import html2pdf from 'html2pdf.js';
 import { Phone, Mail, MapPin, User, Settings, CheckCircle, Globe, Briefcase, GraduationCap, Folder, Sparkles, Bot, Loader2, FileText, Lock, CreditCard, Mic, MicOff, Volume2, MessageCircle } from 'lucide-react';
 
@@ -44,6 +44,7 @@ function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [feedback, setFeedback] = useState("");
+  const transcriptionRef = useRef("");
 
   // Sync credits with TiDB on mount if phone is present
   useEffect(() => {
@@ -250,17 +251,25 @@ function App() {
   };
 
   // --- INTERVIEW COACH LOGIC ---
-  const speak = (text) => {
-    if (!window.speechSynthesis) return;
+  const speak = (text, onEndCallback) => {
+    if (!window.speechSynthesis) {
+        if(onEndCallback) onEndCallback();
+        return;
+    }
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'fr-FR';
     utterance.rate = 0.9;
+    utterance.onend = () => {
+      if (onEndCallback) onEndCallback();
+    };
     window.speechSynthesis.speak(utterance);
   };
 
-  const startInterview = async (isFirst = true) => {
+  const startInterview = async (isFirst = true, userText = null) => {
     setIsAnalyzing(true);
+    const textToSend = userText || transcript;
+    
     try {
       const response = await fetch(`${API_URL}/api/interview/next`, {
         method: 'POST',
@@ -269,7 +278,7 @@ function App() {
           cvData: data,
           jobDescription: jobDescription,
           history: interviewHistory,
-          lastUserResponse: isFirst ? null : transcript
+          lastUserResponse: isFirst ? null : textToSend
         })
       });
 
@@ -278,12 +287,17 @@ function App() {
       setCurrentQuestion(result.question);
       setInterviewHistory(prev => [
         ...prev,
-        isFirst ? null : { role: 'user', content: transcript },
+        isFirst ? null : { role: 'user', content: textToSend },
         { role: 'assistant', content: result.question }
       ].filter(Boolean));
       
       setTranscript("");
-      speak(result.question);
+      transcriptionRef.current = "";
+      
+      speak(result.question, () => {
+        // Commence à écouter automatiquement après que l'IA ait fini de parler
+        autoListen();
+      });
     } catch (err) {
       console.error(err);
       alert("Erreur lors de l'appel du coach.");
@@ -292,26 +306,44 @@ function App() {
     }
   };
 
-  const toggleRecording = () => {
+  const autoListen = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return alert("Votre navigateur ne supporte pas la reconnaissance vocale.");
-
-    if (isRecording) {
-      setIsRecording(false);
-      return;
-    }
+    if (!SpeechRecognition) return; // Silent fallback
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'fr-FR';
     recognition.interimResults = true;
+    transcriptionRef.current = "";
 
     recognition.onstart = () => setIsRecording(true);
     recognition.onresult = (event) => {
-      const current = event.results[event.results.length - 1][0].transcript;
+      let current = '';
+      for (let i = 0; i < event.results.length; i++) {
+        current += event.results[i][0].transcript;
+      }
       setTranscript(current);
+      transcriptionRef.current = current;
     };
-    recognition.onend = () => setIsRecording(false);
-    recognition.start();
+    recognition.onend = () => {
+      setIsRecording(false);
+      // Dès que l'utilisateur arrête de parler, on envoie sa réponse à l'IA s'il a dit quelque chose
+      if (transcriptionRef.current.trim().length > 2) {
+        startInterview(false, transcriptionRef.current);
+      }
+    };
+    try {
+      recognition.start();
+    } catch (e) {
+      console.warn("Recognition already started or error: ", e);
+    }
+  };
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      setIsRecording(false);
+      return;
+    }
+    autoListen();
   };
 
 
