@@ -289,7 +289,11 @@ app.get('/api/credits/:phoneNumber', async (req, res) => {
 // --------------------------------------------------------
 app.post('/api/interview/next', async (req, res) => {
   try {
-    const { cvData, jobDescription, history, lastUserResponse } = req.body;
+    let body = req.body;
+    if (typeof body === 'string') {
+      try { body = JSON.parse(body); } catch(e){}
+    }
+    const { cvData, jobDescription, history = [], lastUserResponse } = body;
     const { default: Groq } = await import('groq-sdk');
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -331,7 +335,11 @@ Format de sortie strictement JSON :
       response_format: { type: 'json_object' }
     });
 
-    res.json(JSON.parse(completion.choices[0].message.content));
+    const rawContent = completion.choices[0].message.content;
+    let parsedMatch = rawContent.match(/\{[\s\S]*\}/);
+    let parsedJson = parsedMatch ? JSON.parse(parsedMatch[0]) : JSON.parse(rawContent);
+
+    res.json(parsedJson);
   } catch (error) {
     console.error('Erreur Interview:', error);
     res.status(500).json({ error: 'Erreur Coach.' });
