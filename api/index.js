@@ -2,8 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
 import axios from 'axios';
+import dotenv from 'dotenv';
+import serverless from 'serverless-http';
 import pool from './db.js';
 import PDFParser from 'pdf2json';
+
+dotenv.config();
 
 const app = express();
 app.use(cors());
@@ -56,7 +60,7 @@ app.post('/api/extract-pdf', upload.single('file'), async (req, res) => {
               ]
             }
           ],
-          model: 'meta-llama/llama-4-scout-17b-16e-instruct'
+          model: 'llama-3.2-11b-vision-preview'
         });
         extractedText = completion.choices[0].message.content;
       } catch (visionErr) {
@@ -327,4 +331,7 @@ app.post('/api/interview/next', async (req, res) => {
   }
 });
 
-export default app;
+const handler = serverless(app);
+export default async (req, res) => {
+  return await handler(req, res);
+};
