@@ -47,9 +47,34 @@ function App() {
   const transcriptionRef = useRef("");
   const isAnalyzingRef = useRef(false);
 
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+
   useEffect(() => {
     isAnalyzingRef.current = isAnalyzing;
   }, [isAnalyzing]);
+
+  // Listen for PWA install prompt
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault(); // Prevent automatic prompt
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setIsInstallable(false);
+    }
+    setDeferredPrompt(null);
+  };
 
   // Sync credits with TiDB on mount if phone is present
   useEffect(() => {
@@ -469,6 +494,15 @@ function App() {
               </button>
             ))}
           </div>
+
+          {isInstallable && (
+            <button 
+              onClick={handleInstallClick}
+              className="mb-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg text-[11px] font-black uppercase tracking-wider py-3 px-4 rounded flex items-center justify-center gap-2 transition-all animate-bounce"
+            >
+              📱 Installer l'Application sur le téléphone
+            </button>
+          )}
 
           <div className="flex-1 overflow-y-auto pr-2 text-sm z-10">
             {activeTab === 'interview' && (
