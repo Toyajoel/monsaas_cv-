@@ -464,8 +464,8 @@ function App() {
               >
                 {tab === 'form' && '📝 Contenu'}
                 {tab === 'design' && '🎨 Design'}
-                {tab === 'ia' && <><Sparkles size={12}/> Matcher</>}
-                {tab === 'interview' && <><Mic size={12}/> Coach</>}
+                {tab === 'ia' && <><Sparkles size={12}/> Adapter CV (IA)</>}
+                {tab === 'interview' && <><Mic size={12}/> Entretien IA</>}
               </button>
             ))}
           </div>
@@ -621,16 +621,16 @@ function App() {
                 <label className="block text-xs font-bold text-gray-600 mb-1 mt-2">Résumé / Bio</label>
                 <textarea name="bio" placeholder="Résumé / Bio" value={data.bio} onChange={handleChange} className="w-full p-2 border rounded h-20 text-sm" />
 
-                <label className="block text-xs font-bold text-gray-600 border-t pt-2 mt-4">Colonne de gauche</label>
-                <textarea name="skills" placeholder="Compétences" value={data.skills} onChange={handleChange} className="w-full p-2 border rounded h-16" />
-                <textarea name="methodes" placeholder="Méthodes de travail" value={data.methodes} onChange={handleChange} className="w-full p-2 border rounded h-16" />
-                <textarea name="qualite" placeholder="Qualités" value={data.qualite} onChange={handleChange} className="w-full p-2 border rounded h-16" />
-                <textarea name="langue" placeholder="Langues" value={data.langue} onChange={handleChange} className="w-full p-2 border rounded h-16" />
+                <label className="block text-xs font-bold text-gray-600 border-t pt-2 mt-4 text-center uppercase tracking-wider">Colonne de gauche</label>
+                <div><label className="block text-xs font-bold text-blue-600 mb-1">💡 Compétences Techniques</label><textarea name="skills" placeholder="Compétences..." value={data.skills} onChange={handleChange} className="w-full p-2 border rounded h-16" /></div>
+                <div><label className="block text-xs font-bold text-blue-600 mb-1">🛠️ Méthodes de Travail</label><textarea name="methodes" placeholder="Méthodes de travail..." value={data.methodes} onChange={handleChange} className="w-full p-2 border rounded h-16" /></div>
+                <div><label className="block text-xs font-bold text-blue-600 mb-1">⭐ Qualités Personnelles</label><textarea name="qualite" placeholder="Qualités..." value={data.qualite} onChange={handleChange} className="w-full p-2 border rounded h-16" /></div>
+                <div><label className="block text-xs font-bold text-blue-600 mb-1">🌍 Langues</label><textarea name="langue" placeholder="Langues..." value={data.langue} onChange={handleChange} className="w-full p-2 border rounded h-16" /></div>
 
-                <label className="block text-xs font-bold text-gray-600 border-t pt-2 mt-4">Colonne de droite</label>
-                <textarea name="experience" placeholder="Expériences Professionnelles" value={data.experience} onChange={handleChange} className="w-full p-2 border rounded h-24 text-sm" />
-                <textarea name="projet" placeholder="Projets Réalisés" value={data.projet} onChange={handleChange} className="w-full p-2 border rounded h-24 text-sm" />
-                <textarea name="education" placeholder="Formations" value={data.education} onChange={handleChange} className="w-full p-2 border rounded h-24" />
+                <label className="block text-xs font-bold text-gray-600 border-t pt-2 mt-4 text-center uppercase tracking-wider">Colonne de droite</label>
+                <div><label className="block text-xs font-bold text-blue-600 mb-1">💼 Expériences Professionnelles</label><textarea name="experience" placeholder="Vos expériences..." value={data.experience} onChange={handleChange} className="w-full p-2 border rounded h-24 text-sm" /></div>
+                <div><label className="block text-xs font-bold text-blue-600 mb-1">🚀 Projets Réalisés</label><textarea name="projet" placeholder="Vos projets..." value={data.projet} onChange={handleChange} className="w-full p-2 border rounded h-24 text-sm" /></div>
+                <div><label className="block text-xs font-bold text-blue-600 mb-1">🎓 Formations & Diplômes</label><textarea name="education" placeholder="Vos formations..." value={data.education} onChange={handleChange} className="w-full p-2 border rounded h-24" /></div>
               </div>
             )}
 
