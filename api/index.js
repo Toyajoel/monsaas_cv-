@@ -3,7 +3,6 @@ import cors from 'cors';
 import multer from 'multer';
 import axios from 'axios';
 import dotenv from 'dotenv';
-import serverless from 'serverless-http';
 import pool from './db.js';
 import PDFParser from 'pdf2json';
 
@@ -85,7 +84,11 @@ app.post('/api/extract-pdf', upload.single('file'), async (req, res) => {
 // --------------------------------------------------------
 app.post('/api/generate-cv', async (req, res) => {
   try {
-    const { currentData, jobDescription } = req.body;
+    let body = req.body;
+    if (typeof body === 'string') {
+      try { body = JSON.parse(body); } catch(e){}
+    }
+    const { currentData, jobDescription } = body;
     if (!currentData || !jobDescription) {
       return res.status(400).json({ error: 'Données CV ou description de poste manquantes.' });
     }
@@ -331,7 +334,4 @@ app.post('/api/interview/next', async (req, res) => {
   }
 });
 
-const handler = serverless(app);
-export default async (req, res) => {
-  return await handler(req, res);
-};
+export default app;
