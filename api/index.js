@@ -59,7 +59,7 @@ app.post('/api/extract-pdf', upload.single('file'), async (req, res) => {
               ]
             }
           ],
-          model: 'llama-3.2-11b-vision-instruct'
+          model: 'meta-llama/llama-4-scout-17b-16e-instruct'
         });
         extractedText = completion.choices[0].message.content;
       } catch (visionErr) {
