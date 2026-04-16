@@ -205,7 +205,7 @@ app.post('/api/pay/initiate', async (req, res) => {
     const transactionId = `CV_${Date.now()}`;
     const payload = {
       amount: "650",
-      currency: 'XAF',
+      currency: 'XOF',
       description: 'Achat de 5 crédits CV AI (Cameroun)',
       reference: transactionId,
       customer: { 
