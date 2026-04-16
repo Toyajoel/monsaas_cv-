@@ -989,7 +989,7 @@ function App() {
                 className="w-full bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-black py-4 px-6 rounded-xl shadow-lg shadow-yellow-200 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
               >
                 {isPaying ? <Loader2 className="animate-spin" /> : <CreditCard size={20} />}
-                {isPaying ? 'Vérification du paiement...' : 'ACTIVER POUR 650 FCFA'}
+                {isPaying ? 'Vérification du paiement...' : 'ACTIVER POUR 150 FCFA'}
               </button>
 
               <p className="text-[10px] text-gray-400 mt-6 text-center leading-relaxed">
