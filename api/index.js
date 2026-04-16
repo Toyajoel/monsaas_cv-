@@ -302,17 +302,21 @@ app.get('/api/pay/restore/:phoneNumber', async (req, res) => {
       phone = phone.length === 9 ? `+237${phone}` : `+${phone}`;
     }
 
-    // 1. Trouver la dernière transaction PENDING pour ce numéro
+    // 1. Chercher la dernière transaction pour ce numéro, peu importe le statut
+    // On essaie le numéro tel quel et le numéro sans le +237
+    const phoneSimple = phone.replace('+237', '');
     const [trans] = await pool.query(
-      'SELECT id FROM transactions WHERE phoneNumber = ? AND status = "PENDING" ORDER BY id DESC LIMIT 1', 
-      [phone]
+      'SELECT id, status FROM transactions WHERE phoneNumber = ? OR phoneNumber = ? OR phoneNumber = ? ORDER BY id DESC LIMIT 1', 
+      [phone, phoneSimple, phone.replace('+', '')]
     );
 
     if (!trans.length) {
-      return res.status(404).json({ error: "Aucune transaction en attente trouvée pour ce numéro." });
+      console.log(`Aucune transaction trouvée en DB pour ${phone}`);
+      return res.status(404).json({ error: "Nous n'avons trouvé aucune trace de transaction pour ce numéro dans notre base de données. Si vous avez un ID de transaction GeniusPay, contactez le support." });
     }
 
     const transactionId = trans[0].id;
+    console.log(`Vérification restauration pour ID: ${transactionId} (Ancien statut: ${trans[0].status})`);
 
     // 2. Vérifier son statut réel sur GeniusPay
     const response = await axios.get(`${process.env.GENIUSPAY_API_URL}/${transactionId}`, {
@@ -331,13 +335,18 @@ app.get('/api/pay/restore/:phoneNumber', async (req, res) => {
       await pool.query('UPDATE transactions SET status = ? WHERE id = ?', [currentStatus, transactionId]);
       await pool.query('UPDATE users SET credits = credits + 5 WHERE phoneNumber = ?', [phone]);
       const [user] = await pool.query('SELECT credits FROM users WHERE phoneNumber = ?', [phone]);
-      return res.json({ success: true, message: "Crédits restaurés avec succès !", credits: user[0].credits });
+      
+      return res.json({ 
+        success: true, 
+        message: "Paiement confirmé sur GeniusPay ! Vos 5 crédits ont été restaurés.", 
+        credits: user[0]?.credits || 5 
+      });
     }
 
-    res.json({ success: false, message: `La transaction est toujours en statut : ${currentStatus}` });
+    res.json({ success: false, message: `GeniusPay indique que cette transaction est : ${currentStatus}. Elle n'est pas encore marquée comme réussie.` });
   } catch (error) {
-    console.error('Erreur Restore:', error.message);
-    res.status(500).json({ error: "Erreur lors de la restauration." });
+    console.error('Erreur Restore détaillée:', error.response?.data || error.message);
+    res.status(500).json({ error: "Erreur technique lors de la restauration. Veuillez réessayer." });
   }
 });
 
