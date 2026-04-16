@@ -206,7 +206,11 @@ app.post('/api/pay/initiate', async (req, res) => {
       amount: 150,
       currency: 'XAF',
       description: 'Achat de 5 crédits CV AI (Cameroun)',
-      customer: { phone: formattedPhone },
+      customer: { 
+        name: 'Utilisateur MonCV',
+        email: 'paiement@moncv.app',
+        phone: formattedPhone 
+      },
       payment_method: 'mobile_money',
       success_url: `${req.headers.origin || 'https://moncv.app'}/payment-success`,
       error_url: `${req.headers.origin || 'https://moncv.app'}/payment-error`
@@ -238,8 +242,8 @@ app.post('/api/pay/initiate', async (req, res) => {
       checkoutUrl: transactionData.checkout_url || transactionData.payment_url
     });
   } catch (error) {
-    console.error('GeniusPay Error:', error.response?.data || error.message);
-    const errorDetail = error.response?.data?.message || error.response?.data?.error || error.message;
+    console.error('GeniusPay Error Full:', error.response?.data || error.message);
+    const errorDetail = error.response?.data?.message || error.response?.data?.error || JSON.stringify(error.response?.data) || error.message;
     res.status(500).json({ error: `Erreur GeniusPay: ${errorDetail}` });
   }
 });
