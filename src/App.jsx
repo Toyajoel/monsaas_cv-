@@ -277,16 +277,24 @@ function App() {
 
   const handleRestoreCredits = async () => {
     if (!mtnNumber) return alert("Veuillez entrer votre numéro");
+    
+    // Demander l'ID si l'utilisateur en a un (comme MTX...)
+    const manualId = window.prompt("Si vous avez un ID de transaction GeniusPay (ex: MTX-...), saisissez-le ici. Sinon, laissez vide pour une recherche automatique.");
+    
     setIsPaying(true);
     try {
-      const response = await fetch(`${API_URL}/api/pay/restore/${mtnNumber}`);
+      const url = manualId 
+        ? `${API_URL}/api/pay/restore/${mtnNumber}?transactionId=${manualId.trim()}`
+        : `${API_URL}/api/pay/restore/${mtnNumber}`;
+        
+      const response = await fetch(url);
       const result = await response.json();
+      
       if (result.success) {
         setCredits(result.credits);
         setShowPaywall(false);
         setIsPaying(false);
         alert(result.message);
-        // Sauvegarder le numéro
         localStorage.setItem('premium_phone', mtnNumber);
       } else {
         alert(result.message || "Aucun paiement réussi trouvé.");

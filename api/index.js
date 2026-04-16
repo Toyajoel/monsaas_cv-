@@ -297,29 +297,34 @@ app.get('/api/pay/status/:id', async (req, res) => {
 // Nouvelle route pour restaurer les crédits perdus
 app.get('/api/pay/restore/:phoneNumber', async (req, res) => {
   try {
+    const { transactionId } = req.query;
     let phone = req.params.phoneNumber.trim().replace(/\s/g, '');
     if (!phone.startsWith('+')) {
       phone = phone.length === 9 ? `+237${phone}` : `+${phone}`;
     }
 
-    // 1. Chercher la dernière transaction pour ce numéro, peu importe le statut
-    // On essaie le numéro tel quel et le numéro sans le +237
-    const phoneSimple = phone.replace('+237', '');
-    const [trans] = await pool.query(
-      'SELECT id, status FROM transactions WHERE phoneNumber = ? OR phoneNumber = ? OR phoneNumber = ? ORDER BY id DESC LIMIT 1', 
-      [phone, phoneSimple, phone.replace('+', '')]
-    );
+    let idToVerify = transactionId;
 
-    if (!trans.length) {
-      console.log(`Aucune transaction trouvée en DB pour ${phone}`);
-      return res.status(404).json({ error: "Nous n'avons trouvé aucune trace de transaction pour ce numéro dans notre base de données. Si vous avez un ID de transaction GeniusPay, contactez le support." });
+    // 1. Si aucun ID n'est fourni, on cherche la dernière transaction en DB pour ce numéro
+    if (!idToVerify) {
+      const phoneSimple = phone.replace('+237', '');
+      const [trans] = await pool.query(
+        'SELECT id FROM transactions WHERE phoneNumber = ? OR phoneNumber = ? OR phoneNumber = ? ORDER BY id DESC LIMIT 1', 
+        [phone, phoneSimple, phone.replace('+', '')]
+      );
+      if (trans.length) {
+        idToVerify = trans[0].id;
+      }
     }
 
-    const transactionId = trans[0].id;
-    console.log(`Vérification restauration pour ID: ${transactionId} (Ancien statut: ${trans[0].status})`);
+    if (!idToVerify) {
+      return res.status(404).json({ error: "Aucune transaction trouvée. Veuillez saisir votre ID de transaction GeniusPay." });
+    }
+
+    console.log(`Vérification restauration pour ID: ${idToVerify}`);
 
     // 2. Vérifier son statut réel sur GeniusPay
-    const response = await axios.get(`${process.env.GENIUSPAY_API_URL}/${transactionId}`, {
+    const response = await axios.get(`${process.env.GENIUSPAY_API_URL}/${idToVerify}`, {
       headers: {
         'X-API-Key': process.env.GENIUSPAY_PUBLIC_KEY,
         'X-API-Secret': process.env.GENIUSPAY_SECRET_KEY,
@@ -332,21 +337,32 @@ app.get('/api/pay/restore/:phoneNumber', async (req, res) => {
 
     if (isSuccessful) {
       // 3. Créditer l'utilisateur
-      await pool.query('UPDATE transactions SET status = ? WHERE id = ?', [currentStatus, transactionId]);
-      await pool.query('UPDATE users SET credits = credits + 5 WHERE phoneNumber = ?', [phone]);
-      const [user] = await pool.query('SELECT credits FROM users WHERE phoneNumber = ?', [phone]);
+      // On s'assure que l'utilisateur existe
+      await pool.query('INSERT IGNORE INTO users (phoneNumber, credits) VALUES (?, ?)', [phone, 0]);
       
+      // On vérifie si cette transaction a DEJA été créditée (pour éviter les doublons)
+      const [alreadyDone] = await pool.query('SELECT status FROM transactions WHERE id = ?', [idToVerify]);
+      if (alreadyDone.length && (alreadyDone[0].status === 'completed' || alreadyDone[0].status === 'success')) {
+        return res.json({ success: true, message: "Ces crédits ont déjà été ajoutés à votre compte." });
+      }
+
+      // Mise à jour finale
+      await pool.query('INSERT IGNORE INTO transactions (id, phoneNumber, amount, status) VALUES (?, ?, ?, ?)', [idToVerify, phone, 650, currentStatus]);
+      await pool.query('UPDATE transactions SET status = ? WHERE id = ?', [currentStatus, idToVerify]);
+      await pool.query('UPDATE users SET credits = credits + 5 WHERE phoneNumber = ?', [phone]);
+      
+      const [user] = await pool.query('SELECT credits FROM users WHERE phoneNumber = ?', [phone]);
       return res.json({ 
         success: true, 
-        message: "Paiement confirmé sur GeniusPay ! Vos 5 crédits ont été restaurés.", 
+        message: "Paiement confirmé ! Votre compte a été crédité de 5 crédits.", 
         credits: user[0]?.credits || 5 
       });
     }
 
-    res.json({ success: false, message: `GeniusPay indique que cette transaction est : ${currentStatus}. Elle n'est pas encore marquée comme réussie.` });
+    res.json({ success: false, message: `La transaction ${idToVerify} est en statut : ${currentStatus}.` });
   } catch (error) {
-    console.error('Erreur Restore détaillée:', error.response?.data || error.message);
-    res.status(500).json({ error: "Erreur technique lors de la restauration. Veuillez réessayer." });
+    console.error('Erreur Restore:', error.response?.data || error.message);
+    res.status(500).json({ error: "ID de transaction invalide ou erreur serveur." });
   }
 });
 
