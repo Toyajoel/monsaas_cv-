@@ -294,6 +294,53 @@ app.get('/api/pay/status/:id', async (req, res) => {
   }
 });
 
+// Nouvelle route pour restaurer les crédits perdus
+app.get('/api/pay/restore/:phoneNumber', async (req, res) => {
+  try {
+    let phone = req.params.phoneNumber.trim().replace(/\s/g, '');
+    if (!phone.startsWith('+')) {
+      phone = phone.length === 9 ? `+237${phone}` : `+${phone}`;
+    }
+
+    // 1. Trouver la dernière transaction PENDING pour ce numéro
+    const [trans] = await pool.query(
+      'SELECT id FROM transactions WHERE phoneNumber = ? AND status = "PENDING" ORDER BY id DESC LIMIT 1', 
+      [phone]
+    );
+
+    if (!trans.length) {
+      return res.status(404).json({ error: "Aucune transaction en attente trouvée pour ce numéro." });
+    }
+
+    const transactionId = trans[0].id;
+
+    // 2. Vérifier son statut réel sur GeniusPay
+    const response = await axios.get(`${process.env.GENIUSPAY_API_URL}/${transactionId}`, {
+      headers: {
+        'X-API-Key': process.env.GENIUSPAY_PUBLIC_KEY,
+        'X-API-Secret': process.env.GENIUSPAY_SECRET_KEY,
+      }
+    });
+
+    const transactionData = response.data.data;
+    const currentStatus = transactionData.status?.toLowerCase();
+    const isSuccessful = ['completed', 'success', 'paid', 'accepted', 'authorized'].includes(currentStatus);
+
+    if (isSuccessful) {
+      // 3. Créditer l'utilisateur
+      await pool.query('UPDATE transactions SET status = ? WHERE id = ?', [currentStatus, transactionId]);
+      await pool.query('UPDATE users SET credits = credits + 5 WHERE phoneNumber = ?', [phone]);
+      const [user] = await pool.query('SELECT credits FROM users WHERE phoneNumber = ?', [phone]);
+      return res.json({ success: true, message: "Crédits restaurés avec succès !", credits: user[0].credits });
+    }
+
+    res.json({ success: false, message: `La transaction est toujours en statut : ${currentStatus}` });
+  } catch (error) {
+    console.error('Erreur Restore:', error.message);
+    res.status(500).json({ error: "Erreur lors de la restauration." });
+  }
+});
+
 app.get('/api/credits/:phoneNumber', async (req, res) => {
   try {
     const [users] = await pool.query('SELECT credits FROM users WHERE phoneNumber = ?', [req.params.phoneNumber]);

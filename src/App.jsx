@@ -223,8 +223,9 @@ function App() {
             
             // GeniusPay/PawaPay peuvent renvoyer des statuts différents
             const currentStatus = (Array.isArray(statusData) ? statusData[0]?.status : statusData.status)?.toLowerCase();
+            const isSuccessful = ['completed', 'success', 'paid', 'accepted', 'authorized'].includes(currentStatus);
 
-            if (currentStatus === 'completed' || currentStatus === 'success') {
+            if (isSuccessful) {
               clearInterval(checkInterval);
               // Sauvegarder le numéro pour la session
               localStorage.setItem('premium_phone', mtnNumber);
@@ -264,12 +265,36 @@ function App() {
           }
         }, 3000);
       } else {
-        alert("Erreur de paiement : " + result.error);
+        alert("Erreur de paiement : " + (result?.error || "Inconnu"));
         setIsPaying(false);
       }
     } catch (error) {
       console.error("Erreur technique:", error);
       alert("Erreur technique de connexion. Vérifiez la console.");
+      setIsPaying(false);
+    }
+  };
+
+  const handleRestoreCredits = async () => {
+    if (!mtnNumber) return alert("Veuillez entrer votre numéro");
+    setIsPaying(true);
+    try {
+      const response = await fetch(`${API_URL}/api/pay/restore/${mtnNumber}`);
+      const result = await response.json();
+      if (result.success) {
+        setCredits(result.credits);
+        setShowPaywall(false);
+        setIsPaying(false);
+        alert(result.message);
+        // Sauvegarder le numéro
+        localStorage.setItem('premium_phone', mtnNumber);
+      } else {
+        alert(result.message || "Aucun paiement réussi trouvé.");
+        setIsPaying(false);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Erreur lors de la vérification.");
       setIsPaying(false);
     }
   };
@@ -989,7 +1014,15 @@ function App() {
                 className="w-full bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-black py-4 px-6 rounded-xl shadow-lg shadow-yellow-200 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
               >
                 {isPaying ? <Loader2 className="animate-spin" /> : <CreditCard size={20} />}
-                {isPaying ? 'Vérification du paiement...' : 'ACTIVER POUR 150 FCFA'}
+                {isPaying ? 'Vérification du paiement...' : 'ACTIVER POUR 650 FCFA'}
+              </button>
+
+              <button 
+                onClick={handleRestoreCredits}
+                disabled={isPaying || !mtnNumber}
+                className="w-full mt-4 text-yellow-600 font-bold text-xs hover:underline flex items-center justify-center gap-1"
+              >
+                <CheckCircle size={14}/> Déjà payé ? Vérifier mon statut
               </button>
 
               <p className="text-[10px] text-gray-400 mt-6 text-center leading-relaxed">
