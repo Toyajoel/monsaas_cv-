@@ -508,7 +508,10 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-6">
-      <h1 className="text-4xl font-black mb-6 text-gray-900 tracking-tighter">mon<span className="text-blue-600">cv</span></h1>
+      <h1 className="text-4xl font-black mb-6 text-gray-900 tracking-tighter" title="MonCV - Générateur de CV au Cameroun">
+        mon<span className="text-blue-600">cv</span>
+        <span className="sr-only"> - Générateur de CV Intelligent au Cameroun</span>
+      </h1>
 
       <div className="bg-white rounded-none lg:rounded-xl shadow-xl w-full max-w-7xl flex flex-col lg:flex-row overflow-hidden lg:min-h-[850px]">
         {/* Left Panel: Controls */}

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: http://moncv.oritchsolutions.com/sitemap.xml
