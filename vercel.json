@@ -7,7 +7,9 @@
     { "source": "/api/extract-pdf", "destination": "/api/index.js" },
     { "source": "/api/generate-cv", "destination": "/api/index.js" },
     { "source": "/api/interview/(.*)", "destination": "/api/index.js" },
-    { "source": "/(robots.txt|sitemap.xml|favicon.svg)", "destination": "/$1" },
+    { "source": "/robots.txt", "destination": "/robots.txt" },
+    { "source": "/sitemap.xml", "destination": "/sitemap.xml" },
+    { "source": "/favicon.svg", "destination": "/favicon.svg" },
     { "source": "/(.*)", "destination": "/" }
   ]
 }
