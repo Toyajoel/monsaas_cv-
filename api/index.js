@@ -203,7 +203,7 @@ app.post('/api/pay/initiate', async (req, res) => {
     }
 
     const payload = {
-      amount: 150,
+      amount: 650,
       currency: 'XAF',
       description: 'Achat de 5 crédits CV AI (Cameroun)',
       customer: { 
@@ -230,7 +230,7 @@ app.post('/api/pay/initiate', async (req, res) => {
     // On ignore l'erreur DB pour que le client puisse au moins payer
     try {
       await pool.query('INSERT INTO transactions (id, phoneNumber, amount, status) VALUES (?, ?, ?, ?)',
-        [transactionId, formattedPhone, 150, 'PENDING']);
+        [transactionId, formattedPhone, 650, 'PENDING']);
       await pool.query('INSERT IGNORE INTO users (phoneNumber, credits) VALUES (?, ?)', [formattedPhone, 0]);
     } catch (dbErr) {
       console.error("DB Error ignored", dbErr.message);
