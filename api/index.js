@@ -265,24 +265,32 @@ app.get('/api/pay/status/:id', async (req, res) => {
 
     const transactionData = response.data.data;
     const currentStatus = transactionData.status?.toLowerCase();
+    const isSuccessful = ['completed', 'success', 'paid', 'accepted', 'authorized'].includes(currentStatus);
 
     // Si le paiement est réussi, on crédite l'utilisateur dans la DB
-    if (currentStatus === 'completed' || currentStatus === 'success') {
+    if (isSuccessful) {
       const [trans] = await pool.query('SELECT phoneNumber, status FROM transactions WHERE id = ?', [req.params.id]);
       
       if (trans.length && trans[0].status === 'PENDING') {
+        const phone = trans[0].phoneNumber;
         await pool.query('UPDATE transactions SET status = ? WHERE id = ?', [currentStatus, req.params.id]);
-        await pool.query('UPDATE users SET credits = credits + 5 WHERE phoneNumber = ?', [trans[0].phoneNumber]);
-        console.log(`✅ Crédits ajoutés pour ${trans[0].phoneNumber}`);
+        await pool.query('UPDATE users SET credits = credits + 5 WHERE phoneNumber = ?', [phone]);
+        console.log(`✅ Crédits ajoutés pour ${phone}`);
+      } else if (!trans.length && transactionData.customer?.phone) {
+        // Sécurité supplémentaire : si la transaction n'est pas en table mais que GeniusPay confirme le succès
+        const phone = transactionData.customer.phone;
+        await pool.query('INSERT IGNORE INTO users (phoneNumber, credits) VALUES (?, ?)', [phone, 0]);
+        await pool.query('UPDATE users SET credits = credits + 5 WHERE phoneNumber = ?', [phone]);
+        console.log(`✅ Crédits ajoutés (Secours) pour ${phone}`);
       }
-    } else if (currentStatus === 'failed' || currentStatus === 'rejected') {
+    } else if (['failed', 'rejected', 'cancelled'].includes(currentStatus)) {
       await pool.query('UPDATE transactions SET status = ? WHERE id = ?', [currentStatus, req.params.id]);
     }
 
     res.json(transactionData);
   } catch (error) {
-    console.error('Erreur Status:', error.message);
-    res.status(500).json({ error: 'Erreur statut.' });
+    console.error('Erreur Status API:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Erreur lors de la vérification du statut.' });
   }
 });
 
