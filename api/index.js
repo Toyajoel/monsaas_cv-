@@ -202,18 +202,20 @@ app.post('/api/pay/initiate', async (req, res) => {
       formattedPhone = formattedPhone.length === 9 ? `+237${formattedPhone}` : `+${formattedPhone}`;
     }
 
+    const transactionId = `CV_${Date.now()}`;
     const payload = {
-      amount: 650,
+      amount: "650",
       currency: 'XAF',
       description: 'Achat de 5 crédits CV AI (Cameroun)',
+      reference: transactionId,
       customer: { 
         name: 'Utilisateur MonCV',
         email: 'paiement@moncv.app',
         phone: formattedPhone 
       },
       payment_method: 'mobile_money',
-      success_url: `${req.headers.origin || 'https://moncv.app'}/payment-success`,
-      error_url: `${req.headers.origin || 'https://moncv.app'}/payment-error`
+      success_url: `https://moncv-saas.vercel.app/payment-success`,
+      error_url: `https://moncv-saas.vercel.app/payment-error`
     };
 
     const response = await axios.post(process.env.GENIUSPAY_API_URL, payload, {
@@ -225,26 +227,26 @@ app.post('/api/pay/initiate', async (req, res) => {
     });
 
     const transactionData = response.data.data;
-    const transactionId = transactionData.reference || transactionData.id || Date.now().toString();
+    const finalRef = transactionData.reference || transactionData.id || transactionId;
 
     // On ignore l'erreur DB pour que le client puisse au moins payer
     try {
       await pool.query('INSERT INTO transactions (id, phoneNumber, amount, status) VALUES (?, ?, ?, ?)',
-        [transactionId, formattedPhone, 650, 'PENDING']);
+        [finalRef, formattedPhone, 650, 'PENDING']);
       await pool.query('INSERT IGNORE INTO users (phoneNumber, credits) VALUES (?, ?)', [formattedPhone, 0]);
     } catch (dbErr) {
       console.error("DB Error ignored", dbErr.message);
     }
 
     res.json({
-      transactionId,
+      transactionId: finalRef,
       status: transactionData.status,
       checkoutUrl: transactionData.checkout_url || transactionData.payment_url
     });
   } catch (error) {
-    console.error('GeniusPay Error Full:', error.response?.data || error.message);
-    const errorDetail = error.response?.data?.message || error.response?.data?.error || JSON.stringify(error.response?.data) || error.message;
-    res.status(500).json({ error: `Erreur GeniusPay: ${errorDetail}` });
+    console.error('GeniusPay Error Raw:', error.response?.data || error.message);
+    const rawError = error.response?.data ? JSON.stringify(error.response.data) : error.message;
+    res.status(500).json({ error: `DETAI_TECHNIQUE_GENIUS: ${rawError}` });
   }
 });
 
