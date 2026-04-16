@@ -204,8 +204,12 @@ app.post('/api/pay/initiate', async (req, res) => {
 
     const payload = {
       amount: 150,
+      currency: 'XAF',
       description: 'Achat de 5 crédits CV AI (Cameroun)',
-      customer: { phone: formattedPhone }
+      customer: { phone: formattedPhone },
+      payment_method: 'mobile_money',
+      success_url: `${req.headers.origin || 'https://moncv.app'}/payment-success`,
+      error_url: `${req.headers.origin || 'https://moncv.app'}/payment-error`
     };
 
     const response = await axios.post(process.env.GENIUSPAY_API_URL, payload, {
