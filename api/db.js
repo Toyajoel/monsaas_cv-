@@ -7,7 +7,7 @@ const pool = mysql.createPool({
   port: process.env.TIDB_PORT || 4000,
   user: process.env.TIDB_USER,
   password: process.env.TIDB_PASSWORD,
-  database: process.env.TIDB_DATABASE || 'test',
+  database: process.env.TIDB_DATABASE || 'sys',
   ssl: {
     minVersion: 'TLSv1.2',
     rejectUnauthorized: true,
