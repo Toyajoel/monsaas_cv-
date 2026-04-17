@@ -11,5 +11,14 @@
     { "source": "/sitemap.xml", "destination": "/sitemap.xml" },
     { "source": "/favicon.svg", "destination": "/favicon.svg" },
     { "source": "/(.*)", "destination": "/" }
+  ],
+  "headers": [
+    {
+      "source": "/sitemap.xml",
+      "headers": [
+        { "key": "Content-Type", "value": "application/xml" },
+        { "key": "X-Robots-Tag", "value": "index, follow" }
+      ]
+    }
   ]
 }
